@@ -1,0 +1,481 @@
+{
+  "source": "【北京迅为】itop-3568开发板驱动开发指南（重制版）_1.9.pdf",
+  "sourceSha256": "b4f0732c2f17ee41f5d07f75036bf87ed57705f181680e7bc3b19a78a0864b82",
+  "counts": {
+    "figures": 1849,
+    "pages": 2080,
+    "tables": 30,
+    "codeBlocks": 1821,
+    "codeRows": 31382,
+    "tableImages": 168,
+    "sourceCodeNumberingWarnings": 15
+  },
+  "parts": 26,
+  "chapters": 267,
+  "bookmarks": 1529,
+  "originalPages": 2080,
+  "navigationRepairs": [
+    {
+      "chapter": 121,
+      "page": 813,
+      "reason": "原 PDF 书签缺失，按正文标题补齐"
+    },
+    {
+      "chapter": 129,
+      "page": 896,
+      "reason": "原 PDF 书签缺失，按正文标题补齐"
+    },
+    {
+      "chapter": 133,
+      "page": 940,
+      "reason": "原 PDF 书签缺失，按正文标题补齐"
+    },
+    {
+      "title": "版权声明",
+      "oldPage": 37,
+      "page": 38
+    },
+    {
+      "title": "第19章 字符设备驱动框架实验",
+      "oldPage": 132,
+      "page": 133
+    },
+    {
+      "title": "第27章 原子操作实验",
+      "oldPage": 204,
+      "page": 205
+    },
+    {
+      "title": "第29章 自旋锁死锁实验",
+      "oldPage": 220,
+      "page": 221
+    },
+    {
+      "title": "第30章 信号量实验",
+      "oldPage": 228,
+      "page": 229
+    },
+    {
+      "title": "第31章 互斥锁实验",
+      "oldPage": 236,
+      "page": 237
+    },
+    {
+      "title": "第34章 非阻塞IO实验",
+      "oldPage": 262,
+      "page": 263
+    },
+    {
+      "title": "第35章 IO多路复用实验",
+      "oldPage": 270,
+      "page": 271
+    },
+    {
+      "title": "第37章 定时器实验   ",
+      "oldPage": 291,
+      "page": 292
+    },
+    {
+      "title": "第42章 IOCTL地址传参实验",
+      "oldPage": 326,
+      "page": 327
+    },
+    {
+      "title": "第43章 封装驱动API接口实验",
+      "oldPage": 332,
+      "page": 333
+    },
+    {
+      "title": "第46章 中断实验",
+      "oldPage": 352,
+      "page": 353
+    },
+    {
+      "title": "第54章 工作队列传参实验",
+      "oldPage": 404,
+      "page": 405
+    },
+    {
+      "title": "第57章 平台总线模型介绍",
+      "oldPage": 421,
+      "page": 422
+    },
+    {
+      "title": "第60章 probe函数编写实验",
+      "oldPage": 435,
+      "page": 436
+    },
+    {
+      "title": "第62章 初识设备树",
+      "oldPage": 452,
+      "page": 453
+    },
+    {
+      "title": "第72章 设备树下platform_device和platform_driver匹配实验",
+      "oldPage": 528,
+      "page": 529
+    },
+    {
+      "title": "第74章 of操作函数实验：获取属性",
+      "oldPage": 543,
+      "page": 544
+    },
+    {
+      "title": "第77章 设备树插件介绍",
+      "oldPage": 576,
+      "page": 577
+    },
+    {
+      "title": "第78章 设备树插件使用实验",
+      "oldPage": 580,
+      "page": 581
+    },
+    {
+      "title": "第79章 虚拟文件系统configfS介绍",
+      "oldPage": 585,
+      "page": 586
+    },
+    {
+      "title": "第82章 注册group容器实验",
+      "oldPage": 595,
+      "page": 596
+    },
+    {
+      "title": "第83章 用户空间创建item实验",
+      "oldPage": 600,
+      "page": 601
+    },
+    {
+      "title": "第85章 注册attribute实验",
+      "oldPage": 611,
+      "page": 612
+    },
+    {
+      "title": "第87章 移植设备树插件驱动实验",
+      "oldPage": 627,
+      "page": 628
+    },
+    {
+      "title": "第88章 设备树插件驱动分析实验",
+      "oldPage": 631,
+      "page": 632
+    },
+    {
+      "title": "第91章 创建kobject实验",
+      "oldPage": 660,
+      "page": 661
+    },
+    {
+      "title": "第92章 创建kset实验",
+      "oldPage": 664,
+      "page": 665
+    },
+    {
+      "title": "第93章 进一步探究设备模型",
+      "oldPage": 668,
+      "page": 669
+    },
+    {
+      "title": "第94章 虚拟文件系统sysfs目录层次分析实验",
+      "oldPage": 673,
+      "page": 674
+    },
+    {
+      "title": "第99章 创建多个属性文件实验",
+      "oldPage": 704,
+      "page": 705
+    },
+    {
+      "title": "第106章  platform总线设备注册流程实例分析实验",
+      "oldPage": 735,
+      "page": 736
+    },
+    {
+      "title": "第111章 platform总线注册驱动流程实例分析实验",
+      "oldPage": 753,
+      "page": 754
+    },
+    {
+      "title": "第114章 内核发送事件到用户空间",
+      "oldPage": 760,
+      "page": 761
+    },
+    {
+      "title": "第115章 内核是如何发送事件到用户空间的？",
+      "oldPage": 765,
+      "page": 766
+    },
+    {
+      "title": "第117章netlink监听广播信息实验",
+      "oldPage": 778,
+      "page": 779
+    },
+    {
+      "title": "第130章 GPIO控制和操作实验",
+      "oldPage": 901,
+      "page": 902
+    },
+    {
+      "title": "第138章 初识input子系统",
+      "oldPage": 975,
+      "page": 976
+    },
+    {
+      "title": "第152章 ds18b20介绍",
+      "oldPage": 1059,
+      "page": 1060
+    },
+    {
+      "title": "第153章 ds18b20驱动框架编写",
+      "oldPage": 1066,
+      "page": 1067
+    },
+    {
+      "title": "第154章 ds18b20编写字符设备驱动框架",
+      "oldPage": 1069,
+      "page": 1070
+    },
+    {
+      "title": "第155章ds18b20驱动设备树",
+      "oldPage": 1074,
+      "page": 1075
+    },
+    {
+      "title": "第156章 实现ds18b20驱动复位函数",
+      "oldPage": 1077,
+      "page": 1078
+    },
+    {
+      "title": "第157章实现ds18b20驱动写函数",
+      "oldPage": 1092,
+      "page": 1093
+    },
+    {
+      "title": "第162章 i2c总线概述",
+      "oldPage": 1155,
+      "page": 1156
+    },
+    {
+      "title": "第163章 i2c总线协议讲解",
+      "oldPage": 1161,
+      "page": 1162
+    },
+    {
+      "title": "第167章 编写i2c client代码（方法2）",
+      "oldPage": 1177,
+      "page": 1178
+    },
+    {
+      "title": "第168章 完善ft5x06设备节点和驱动",
+      "oldPage": 1186,
+      "page": 1187
+    },
+    {
+      "title": "第169章 实现ft5x06驱动中i2c通信功能",
+      "oldPage": 1192,
+      "page": 1193
+    },
+    {
+      "title": "第170章 i2c_transfer函数分析",
+      "oldPage": 1201,
+      "page": 1202
+    },
+    {
+      "title": "第171章 使用逻辑分析仪分析i2c波形",
+      "oldPage": 1204,
+      "page": 1205
+    },
+    {
+      "title": "第172章 实现ft5x06驱动数据上报功能",
+      "oldPage": 1208,
+      "page": 1209
+    },
+    {
+      "title": "第173章 i2c_client结构体转换流程",
+      "oldPage": 1222,
+      "page": 1223
+    },
+    {
+      "title": "第176章 使用GPIO模拟i2c驱动",
+      "oldPage": 1260,
+      "page": 1261
+    },
+    {
+      "title": "第178章 SMBus总线介绍",
+      "oldPage": 1292,
+      "page": 1293
+    },
+    {
+      "title": "第179章 SPI总线概述",
+      "oldPage": 1297,
+      "page": 1298
+    },
+    {
+      "title": "第180章SPI子系统框架",
+      "oldPage": 1308,
+      "page": 1309
+    },
+    {
+      "title": "第182章mcp2515驱动编写：注册字符设备",
+      "oldPage": 1321,
+      "page": 1322
+    },
+    {
+      "title": "第183章mcp2515驱动编写：复位操作",
+      "oldPage": 1327,
+      "page": 1328
+    },
+    {
+      "title": "第185章mcp2515驱动编写：实现读寄存器函数",
+      "oldPage": 1339,
+      "page": 1340
+    },
+    {
+      "title": "第186章 mcp2515驱动编写：配置mcp2515寄存器",
+      "oldPage": 1347,
+      "page": 1348
+    },
+    {
+      "title": "第187章mcp2515驱动编写：修改工作模式",
+      "oldPage": 1357,
+      "page": 1358
+    },
+    {
+      "title": "第188章mcp2515驱动编写：实现write和read函数",
+      "oldPage": 1365,
+      "page": 1366
+    },
+    {
+      "title": "第190章 如何在Linux中使用模拟SPI",
+      "oldPage": 1392,
+      "page": 1393
+    },
+    {
+      "title": "第191章 实践：移植官方mcp2515驱动",
+      "oldPage": 1395,
+      "page": 1396
+    },
+    {
+      "title": "第十七篇 串口",
+      "oldPage": 1398,
+      "page": 1399
+    },
+    {
+      "title": "第192章 串口简介",
+      "oldPage": 1399,
+      "page": 1400
+    },
+    {
+      "title": "第195章 串口子系统框架",
+      "oldPage": 1413,
+      "page": 1414
+    },
+    {
+      "title": "第197章 端口注册流程分析",
+      "oldPage": 1426,
+      "page": 1427
+    },
+    {
+      "title": "第200章 初步认识pwm",
+      "oldPage": 1460,
+      "page": 1461
+    },
+    {
+      "title": "第201章 pwm子系统框架",
+      "oldPage": 1465,
+      "page": 1466
+    },
+    {
+      "title": "第208章 RTC概述",
+      "oldPage": 1535,
+      "page": 1536
+    },
+    {
+      "title": "第209章 RX8010子系统框架",
+      "oldPage": 1539,
+      "page": 1540
+    },
+    {
+      "title": "第211章 RTC应用程序编写",
+      "oldPage": 1556,
+      "page": 1557
+    },
+    {
+      "title": "第219章 CAN工具的移植和使用",
+      "oldPage": 1619,
+      "page": 1620
+    },
+    {
+      "title": "第222章 网络通信基础",
+      "oldPage": 1653,
+      "page": 1654
+    },
+    {
+      "title": "第235章 TCP实验",
+      "oldPage": 1739,
+      "page": 1740
+    },
+    {
+      "title": "第238章 初识ADC",
+      "oldPage": 1763,
+      "page": 1764
+    },
+    {
+      "title": "第239章 操作ADC",
+      "oldPage": 1770,
+      "page": 1771
+    },
+    {
+      "title": "第240章 ADC驱动程序编写",
+      "oldPage": 1774,
+      "page": 1775
+    },
+    {
+      "title": "第二十四篇 IIO",
+      "oldPage": 1783,
+      "page": 1784
+    },
+    {
+      "title": "第241章 IIO概述",
+      "oldPage": 1784,
+      "page": 1785
+    },
+    {
+      "title": "第243章IIO设备驱动分析",
+      "oldPage": 1799,
+      "page": 1800
+    },
+    {
+      "title": "第246章 ADC按键驱动分析",
+      "oldPage": 1859,
+      "page": 1860
+    },
+    {
+      "title": "第249章 USB总线架构与设备交互机制",
+      "oldPage": 1881,
+      "page": 1882
+    },
+    {
+      "title": "第256章 USB键盘驱动程序开发实验（三）",
+      "oldPage": 1936,
+      "page": 1937
+    },
+    {
+      "title": "第261章 LCD介绍",
+      "oldPage": 1968,
+      "page": 1969
+    },
+    {
+      "title": "第266章 eDP屏幕移植",
+      "oldPage": 2070,
+      "page": 2071
+    }
+  ],
+  "notes": [
+    "共享章节边界的原页在相邻两章中同时保留，避免丢失同页内容。",
+    "原文技术表述与编号保留；代码由 PDF 文字坐标提取，未作为可编译源码验证。",
+    "跨页代码保留原书页码与行号；Makefile 中识别到的命令缩进恢复为 Tab。",
+    "所有原页均随附，供核对复杂表格、图片和提取文字。"
+  ],
+  "seconds": 39.5
+}

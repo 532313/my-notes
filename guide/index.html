@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="zh-CN" class="hosted">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="color-scheme" content="light dark">
+  <meta name="description" content="iTOP-RK3568 驱动开发指南重制版 V1.9，支持离线全文搜索、章节导航、原页核对与阅读位置记忆。">
+  <title>iTOP-RK3568 驱动开发指南 · 离线阅读版</title>
+  <script>
+    if(new URLSearchParams(location.search).get("embedded")==="1")document.documentElement.classList.add("embedded");
+    // Apply the saved preference before first paint; default to the OS theme.
+    (()=>{let mode='system';try{mode=JSON.parse(localStorage.getItem('rk3568.themeMode'))||'system';}catch{}if(!['system','light','dark'].includes(mode))mode='system';document.documentElement.classList.toggle('dark',mode==='dark'||(mode==='system'&&matchMedia('(prefers-color-scheme: dark)').matches));document.documentElement.dataset.theme=mode;})();
+  </script>
+  <link rel="stylesheet" href="3568阅读资源/reader.css">
+  <script defer src="3568阅读资源/catalog.js"></script>
+  <script defer src="3568阅读资源/vendor/highlight.min.js"></script>
+  <script defer src="3568阅读资源/vendor/dts.min.js"></script>
+  <script defer src="3568阅读资源/code-syntax.js"></script>
+  <script defer src="3568阅读资源/reader.js"></script>
+</head>
+<body>
+  <a class="skip-link" href="#main">跳至正文</a>
+  <header class="topbar">
+    <button class="icon-button menu-toggle" id="menuButton" aria-label="展开目录" aria-expanded="false" aria-controls="sidebar" type="button">☰</button>
+    <a class="brand" href="#overview" aria-label="返回全书总览"><span class="brand-mark">3568<span>RK</span></span><span><span class="brand-eyebrow">LINUX DRIVER HANDBOOK</span><strong>驱动开发指南</strong></span></a>
+    <div class="top-meta"><span class="status-dot"></span>离线阅读版 <span class="divider">/</span> 重制版 V1.9</div>
+    <div class="top-actions"><button id="resumeButton" type="button" class="resume-button" hidden>继续阅读 ↗</button><select id="themeSelect" class="theme-select" aria-label="阅读主题"><option value="system">跟随系统</option><option value="light">浅色模式</option><option value="dark">深色模式</option></select></div>
+  </header>
+  <button id="sidebarBackdrop" class="sidebar-backdrop" aria-label="关闭目录" hidden></button>
+  <aside id="sidebar" class="sidebar" aria-label="全书导航">
+    <div class="search-area"><label for="searchInput" class="eyebrow">在这本书中查找</label><div class="search-box"><span aria-hidden="true">⌕</span><input type="search" id="searchInput" placeholder="函数、命令、章节…" autocomplete="off"><kbd>/</kbd></div><div id="searchStatus" class="search-status" role="status">支持中英文全文检索</div><button id="searchRetry" type="button" hidden>重新载入搜索索引</button></div>
+    <div id="searchPanel" class="search-panel" hidden><div class="panel-label"><span>搜索结果</span><button id="clearSearch" type="button" aria-label="关闭搜索结果">关闭</button></div><div id="searchResults" aria-label="搜索结果列表"></div><button id="moreResults" type="button" hidden>显示更多结果</button></div>
+    <div class="toc-top"><a href="#overview" class="eyebrow">全书目录</a><button id="collapseToc" type="button">收起</button></div>
+    <nav id="toc" class="toc" aria-label="篇章目录"><p class="loading">正在载入目录…</p></nav>
+    <div class="sidebar-footer"><span>26 篇 <i>·</i> 267 章</span><button type="button" id="helpButton">阅读说明 ↗</button></div>
+  </aside>
+  <main id="main" tabindex="-1">
+    <div id="readingProgress" class="reading-progress" aria-hidden="true"><span></span></div>
+    <div id="overview" class="overview" hidden></div>
+    <section id="chapterView" hidden>
+      <div class="reader-tools"><div class="breadcrumbs" id="breadcrumbs"></div><div class="reader-settings"><button type="button" id="smaller" aria-label="减小正文字号">A−</button><span id="fontSize" aria-live="polite">17</span><button type="button" id="larger" aria-label="增大正文字号">A+</button><span class="tool-divider"></span><div class="segmented" role="group" aria-label="阅读模式"><button id="reflowMode" type="button" aria-pressed="true">阅读排版</button><button id="originalMode" type="button" aria-pressed="false">原页</button></div></div></div>
+      <header class="chapter-heading"><div class="eyebrow" id="chapterKicker"></div><h1 id="chapterTitle"></h1><div class="chapter-meta"><span id="chapterRange"></span><span class="meta-dot">·</span><a id="chapterPdf" target="_blank" rel="noopener">打开原 PDF ↗</a></div></header>
+      <details class="chapter-outline" id="chapterOutline"><summary>本章小节 <span id="sectionCount"></span></summary><nav id="sectionLinks" aria-label="本章小节"></nav></details>
+      <div id="chapterStatus" class="loading" role="status"></div>
+      <div id="chapterContent" class="chapter-content"></div>
+      <nav class="chapter-pager" aria-label="章节翻页"><a id="prevChapter"></a><a href="#overview" class="pager-overview">全书总览</a><a id="nextChapter"></a></nav>
+    </section>
+    <footer class="book-footer">北京迅为电子有限公司 · iTOP-RK3568 开发板驱动开发指南重制版<br><span>本地阅读整理 · 原文版权声明可在目录中查看</span></footer>
+  </main>
+  <div id="pageDock" class="page-dock" hidden><span id="currentPage" aria-live="off">第 1 页</span><form id="pageForm"><label for="pageInput">跳页</label><input id="pageInput" type="number" min="1" max="2080" inputmode="numeric" aria-label="原书页码" required><button type="submit" aria-label="跳转到原书页码">↵</button></form><button id="toTop" type="button" aria-label="回到本章顶部">↑</button></div>
+  <dialog id="imageDialog" class="image-dialog" aria-labelledby="imageTitle"><div class="dialog-top"><strong id="imageTitle">查看原图</strong><div><a id="openImage" target="_blank" rel="noopener">打开大图 ↗</a><button type="button" id="zoomToggle">实际大小</button><button type="button" id="closeImage" aria-label="关闭大图">关闭 ×</button></div></div><div class="image-stage"><img id="dialogImage" alt=""></div></dialog>
+  <dialog id="helpDialog" class="help-dialog" aria-labelledby="helpTitle"><div class="dialog-top"><strong id="helpTitle">阅读说明</strong><button id="closeHelp" type="button" aria-label="关闭阅读说明">关闭 ×</button></div><div class="help-body"><p>本书共 26 篇、267 章，依据迅为重制版 V1.9 PDF 整理，保留原文内容、编号、配套资料路径与版权声明。</p><ul><li>通过左侧目录按章阅读，或搜索函数、命令和术语。按 <kbd>/</kbd> 聚焦搜索，<kbd>Esc</kbd> 关闭搜索与大图。</li><li>正文按章节连续排版。需要核对时可切换“原页”，插图支持点击放大。</li><li>代码保留原书行号，复制时排除行号。相邻的连续代码片段会自动衔接。</li><li>代码文字由 PDF 提取，未逐一编译验证；复杂换行、符号和缩进请结合原页核对。复杂合并表格以图像保留。</li><li>阅读位置、主题和字号保存在当前浏览器中。请将 HTML 与“3568阅读资源”文件夹放在一起；打开原 PDF 时还需要同目录下的原 PDF 文件。</li></ul><p class="help-note">导航已依据正文补齐第 121、129、133 章。共用原页的相邻章节在连续阅读中按章节分开。</p></div></dialog>
+  <div id="toast" class="toast" role="status" hidden></div>
+  <noscript><p class="noscript">请启用浏览器 JavaScript，以使用离线目录、全文搜索和章节阅读。</p></noscript>
+</body>
+</html>

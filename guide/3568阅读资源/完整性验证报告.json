@@ -1,0 +1,23 @@
+{
+  "passed": true,
+  "parts": 26,
+  "chapters": 267,
+  "verifiedChapterDestinations": 267,
+  "coveredPages": 2080,
+  "originalPageImages": 2080,
+  "validImageReferences": 2017,
+  "codeBlocks": 1821,
+  "validBookmarkAnchors": 1529,
+  "sourceMatchedSearchPages": 2080,
+  "repairedDestinations": 88,
+  "checks": [
+    "章节连续且标题页与 PDF 正文一致",
+    "2080 页覆盖无缺页",
+    "1529 个书签锚点均可在对应章节找到",
+    "图像引用全部对应本地资源",
+    "代码行与展示行号一一对应，原书跳号保留并标注",
+    "搜索索引逐页与源 PDF 提取文字一致",
+    "章节边界页内容一致",
+    "HTML 内无重复 ID"
+  ]
+}
