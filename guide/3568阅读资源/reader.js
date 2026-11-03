@@ -14,6 +14,7 @@
   let activePage = 1, observer = null, routeVersion = 0, last = storage.get('last'), searchIndex = null;
   let allHits = [], visibleHits = 0, searchTimer, loadIndexPromise, searchSequence = 0, saveTimer, toastTimer;
   let previousFocus = null;
+  let sectionEntries=[],activeSection=null,sectionFrame=0,sectionResizeObserver=null;
   const systemTheme=window.matchMedia('(prefers-color-scheme: dark)');
   let themeMode=storage.get('themeMode','system');
   const sourceUrl = page => encodeURI(C.source)+'#page='+page;
@@ -95,6 +96,65 @@
     pane.innerHTML=sections.map(b=>`<a href="#${b.id}"${b.id===anchor?' aria-current="location"':''}>${esc(b.title)}</a>`).join('');pane.hidden=false;
     C.parts.forEach(p=>{$('nav-'+p.id).open=p.id===unit.part;});
     requestAnimationFrame(()=>{const nav=$('toc'),r=node.getBoundingClientRect(),nr=nav.getBoundingClientRect();if(r.top<nr.top||r.bottom>nr.bottom)nav.scrollTop+=r.top-nr.top-50;});
+  }
+
+  function resetSectionTracking() {
+    if(sectionFrame)cancelAnimationFrame(sectionFrame);
+    sectionFrame=0;sectionEntries=[];activeSection=null;
+    sectionResizeObserver?.disconnect();
+  }
+
+  function requestSectionSync() {
+    if(sectionFrame)return;
+    sectionFrame=requestAnimationFrame(()=>{sectionFrame=0;syncSectionNavigation();});
+  }
+
+  function setupSectionTracking() {
+    const links=[...document.querySelectorAll('.toc-sections a, #sectionLinks a')];
+    sectionEntries=(current?.bookmarks||[]).map(id=>bookmarkMap.get(id)).filter(b=>/^\d+\./.test(b.title)).map(bookmark=>({
+      bookmark,element:document.getElementById(bookmark.id),page:document.getElementById('p'+bookmark.page),
+      links:links.filter(link=>link.hash==='#'+bookmark.id)
+    })).filter(entry=>entry.element&&entry.links.length);
+    activeSection='';
+    if(typeof ResizeObserver!=='undefined'){
+      if(!sectionResizeObserver)sectionResizeObserver=new ResizeObserver(requestSectionSync);
+      sectionResizeObserver.observe($('chapterContent'));
+    }
+    requestSectionSync();
+  }
+
+  function syncSectionNavigation() {
+    if(!current||document.body.dataset.readerReady!=='true')return;
+    const top=parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--top'))||0;
+    const atBottom=window.scrollY>0&&Math.ceil(window.scrollY+innerHeight)>=document.documentElement.scrollHeight-2;
+    const readingLine=atBottom?innerHeight-24:Math.min(innerHeight*.3,top+120);
+    let selected=null,bestTop=-Infinity;
+    for(const entry of sectionEntries){
+      if(entry.element.closest('[hidden]'))continue;
+      let position;
+      if(mode==='original'){
+        const image=entry.page?.querySelector('.original-page img');
+        if(!image||!image.getClientRects().length)continue;
+        const rect=image.getBoundingClientRect();
+        position=rect.top+rect.height*entry.bookmark.y/841.9;
+      }else{
+        if(!entry.element.getClientRects().length)continue;
+        position=entry.element.getBoundingClientRect().top;
+      }
+      if(position<=readingLine&&position>=bestTop){selected=entry;bestTop=position;}
+    }
+    const id=selected?.bookmark.id||null;
+    if(id===activeSection)return;
+    activeSection=id;
+    document.querySelectorAll('.toc-sections a[aria-current], #sectionLinks a[aria-current]').forEach(link=>link.removeAttribute('aria-current'));
+    if(!selected)return;
+    selected.links.forEach(link=>link.setAttribute('aria-current','location'));
+    const link=selected.links.find(link=>link.closest('#toc'));
+    if(link){
+      const nav=$('toc'),bounds=nav.getBoundingClientRect(),row=link.getBoundingClientRect();
+      if(row.top<bounds.top+12)nav.scrollTop+=row.top-bounds.top-12;
+      else if(row.bottom>bounds.bottom-12)nav.scrollTop+=row.bottom-bounds.bottom+12;
+    }
   }
 
   function toggleSidebar(open) {
@@ -183,6 +243,7 @@
   async function renderRoute() {
     const revision=++routeVersion,route=parseRoute();
     document.body.dataset.readerReady='false';
+    resetSectionTracking();
     toggleSidebar(false);clearTimeout(saveTimer);observer?.disconnect();
     if(route.overview){current=null;$('overview').hidden=false;$('chapterView').hidden=true;$('pageDock').hidden=true;$('readingProgress').hidden=true;setActiveNavigation(null);document.title=C.title+' · 离线阅读版';window.scrollTo(0,0);if(route.invalid)showToast('该位置不存在，已返回全书目录。');document.body.dataset.readerReady='true';return;}
     $('overview').hidden=true;$('chapterView').hidden=false;$('pageDock').hidden=false;$('readingProgress').hidden=false;
@@ -219,6 +280,7 @@
       if(route.q&&mode==='original')showToast('已定位到搜索结果所在原页；切换“阅读排版”可查看高亮。');
       activePage=route.page;updateDock(activePage);observePages();savePosition();
       document.body.dataset.readerReady='true';
+      setupSectionTracking();
       // Deep links remain usable even when the search panel has not been opened yet.
       if(route.q&&!$('searchInput').value)$('searchInput').value=route.q;
     }catch(error){if(revision!==routeVersion)return;$('chapterStatus').textContent=error.message;const retry=document.createElement('button');retry.textContent='重试加载';retry.type='button';retry.onclick=()=>{current=null;renderRoute();};$('chapterStatus').append(' ',retry);}
@@ -234,6 +296,7 @@
       if(mode==='original'&&!original.hasChildNodes())original.innerHTML=`<button type="button" class="zoom-image" aria-label="放大原书第 ${n} 页"><img src="${originalUrl(n)}" width="1072" height="1516" loading="lazy" decoding="async" alt="原书第 ${n} 页完整图像"></button>`;
     });
     if(top!==null)requestAnimationFrame(()=>window.scrollBy(0,previous.getBoundingClientRect().top-top));
+    requestSectionSync();
   }
 
   function updateDock(n) {
@@ -361,8 +424,10 @@
   // Delayed images reserve dimensions; failures are surfaced instead of silently disappearing.
   document.addEventListener('error',e=>{if(e.target.tagName==='IMG' && e.target.closest('#chapterContent')){const warning=document.createElement('p');warning.className='empty-page';warning.textContent='图像未能载入，请检查资源文件夹，或使用本页“原 PDF”链接。';e.target.parentElement.after(warning);}},true);
   window.addEventListener('hashchange',renderRoute);
-  window.addEventListener('scroll',()=>{if(current && document.body.dataset.readerReady==='true'){updateProgress();clearTimeout(saveTimer);saveTimer=setTimeout(savePosition,350);}},{passive:true});
+  window.addEventListener('scroll',()=>{if(current && document.body.dataset.readerReady==='true'){requestSectionSync();updateProgress();clearTimeout(saveTimer);saveTimer=setTimeout(savePosition,350);}},{passive:true});
   window.addEventListener('resize',()=>{$('sidebar').inert=matchMedia('(max-width:780px)').matches&&!$('sidebar').classList.contains('open');});
+  window.addEventListener('resize',requestSectionSync);
+  document.addEventListener('load',event=>{if(event.target.tagName==='IMG'&&$('chapterContent').contains(event.target))requestSectionSync();},true);
   window.addEventListener('pagehide',()=>{clearTimeout(saveTimer);savePosition();});
   renderRoute();
 })();
