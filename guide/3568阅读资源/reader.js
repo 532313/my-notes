@@ -160,8 +160,8 @@
   function toggleSidebar(open) {
     $('sidebar').classList.toggle('open',open);$('sidebarBackdrop').hidden=!open;
     $('menuButton').setAttribute('aria-expanded',String(open));document.body.classList.toggle('menu-open',open);
-    if(!open && matchMedia('(max-width:780px)').matches && $('sidebar').contains(document.activeElement))$('menuButton').focus({preventScroll:true});
-    $('sidebar').inert=matchMedia('(max-width:780px)').matches&&!open;
+    if(!open && $('sidebar').contains(document.activeElement))$('menuButton').focus({preventScroll:true});
+    $('sidebar').inert=!open;
   }
 
   function parseRoute() {
@@ -410,7 +410,7 @@
   for(const id of ['imageDialog','helpDialog'])$(id).addEventListener('click',e=>{if(e.target===$(id)){const r=$(id).getBoundingClientRect();if(e.clientX<r.left||e.clientX>r.right||e.clientY<r.top||e.clientY>r.bottom)$(id).close();}});
   document.addEventListener('keydown',e=>{
     const editing=/INPUT|TEXTAREA|SELECT/.test(document.activeElement.tagName)||document.activeElement.isContentEditable;
-    if(e.key==='/'&&!editing&&!$('imageDialog').open&&!$('helpDialog').open){e.preventDefault();if(matchMedia('(max-width:780px)').matches)toggleSidebar(true);$('searchInput').focus();}
+    if(e.key==='/'&&!editing&&!$('imageDialog').open&&!$('helpDialog').open){e.preventDefault();toggleSidebar(true);$('searchInput').focus();}
     if(e.key==='Escape'&&!$('imageDialog').open&&!$('helpDialog').open){if(!$('searchPanel').hidden){$('searchInput').value='';search();}else toggleSidebar(false);}
   });
   document.addEventListener('click',e=>{
@@ -425,10 +425,11 @@
   document.addEventListener('error',e=>{if(e.target.tagName==='IMG' && e.target.closest('#chapterContent')){const warning=document.createElement('p');warning.className='empty-page';warning.textContent='图像未能载入，请检查资源文件夹，或使用本页“原 PDF”链接。';e.target.parentElement.after(warning);}},true);
   window.addEventListener('hashchange',renderRoute);
   window.addEventListener('scroll',()=>{if(current && document.body.dataset.readerReady==='true'){requestSectionSync();updateProgress();clearTimeout(saveTimer);saveTimer=setTimeout(savePosition,350);}},{passive:true});
-  window.addEventListener('resize',()=>{$('sidebar').inert=matchMedia('(max-width:780px)').matches&&!$('sidebar').classList.contains('open');});
+  window.addEventListener('resize',()=>{$('sidebar').inert=!$('sidebar').classList.contains('open');});
   window.addEventListener('resize',requestSectionSync);
   document.addEventListener('load',event=>{if(event.target.tagName==='IMG'&&$('chapterContent').contains(event.target))requestSectionSync();},true);
   window.addEventListener('pagehide',()=>{clearTimeout(saveTimer);savePosition();});
+  window.addEventListener('message',event=>{if(event.source===window.parent&&event.origin===location.origin&&event.data?.type==='notebook-guide-directory')toggleSidebar(!$('sidebar').classList.contains('open'));});
   renderRoute();
 })();
 
