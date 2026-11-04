@@ -1,5 +1,7 @@
 (()=>{
   'use strict';
+  if('scrollRestoration' in history)history.scrollRestoration='manual';
+  const reader=window.NoteReader;
   const C=window.NOTEBOOK_CONFIG,$=id=>document.getElementById(id),store=new NotebookGitHub.Store(C);
   const esc=value=>String(value??'').replace(/[&<>"']/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
   const disk={read(key,fallback){try{return JSON.parse(localStorage.getItem('notebook.'+key))??fallback;}catch{return fallback;}},write(key,value){try{localStorage.setItem('notebook.'+key,JSON.stringify(value));return true;}catch{return false;}}};
@@ -28,10 +30,19 @@
   function markNavigation(){document.querySelectorAll('[data-view]').forEach(a=>{a.classList.toggle('active',a.dataset.view===currentRoute);});$('guideNav').classList.toggle('active',currentRoute==='guide');document.querySelectorAll('[data-notebook]').forEach(a=>a.classList.toggle('active',currentRoute==='notebook/'+a.dataset.notebook));}
   async function refreshLibrary(quiet=false){
     if(refreshPromise)return refreshPromise;
-    $('cloudStatus').textContent='正在同步…';$('refreshButton').disabled=true;
-    refreshPromise=(async()=>{try{documents=await store.list();disk.write('cache',documents);$('cloudStatus').textContent='已同步';if(!quiet)notify('已读取 GitHub 最新内容');}
+    captureEditor();const readingId=current?.id,readingPosition=reader.position(),readingMode=editorMode;
+    $('cloudStatus').textContent='正在同步…';$('refreshButton').disabled=true;$('noteSync').disabled=true;
+    refreshPromise=(async()=>{try{documents=await store.list();disk.write('cache',documents);$('cloudStatus').textContent='已同步';
+      if(readingId&&current?.id===readingId&&current.type==='note'){
+        const fresh=documents.find(d=>d.id===readingId);
+        if(fresh&&fresh.sha!==current.sha){
+          if(drafts[readingId]){$('syncNotice').hidden=false;$('syncNotice').textContent='云端有新版本；当前显示本机草稿，尚未发布。请查看云端版本并比较后保存或另存副本。';$('conflictPanel').hidden=false;$('conflictLink').href=repoUrl+'/blob/'+encodeURIComponent(C.branch)+'/'+githubPath(fresh.path);$('saveStatus').textContent='本机草稿 · 云端有更新';}
+          else{showNote(fresh);setEditorMode(readingMode);requestAnimationFrame(()=>reader.restore(readingPosition));$('syncNotice').hidden=false;$('syncNotice').textContent='当前正文已更新到云端最新版本，阅读位置已保留。';}
+        }else if(!fresh&&current.sha){$('syncNotice').hidden=false;$('syncNotice').textContent='云端已找不到这篇笔记，当前内容仍保留在页面；请导出备份或另存副本。';}
+      }
+      if(!quiet)notify('已读取 GitHub 最新内容');}
       catch(error){$('cloudStatus').textContent='暂未同步';if(!documents.length){try{const response=await fetch('bootstrap.json');if(response.ok)documents=await response.json();}catch{}}if(!quiet)notify(error.message);$('listStatus').textContent=error.message+' 本机已有的笔记和草稿仍可查看。';}
-      finally{refreshPromise=null;$('refreshButton').disabled=false;updateNotebooks();if(!$('libraryView').hidden)renderList();}})();return refreshPromise;
+      finally{refreshPromise=null;$('refreshButton').disabled=false;$('noteSync').disabled=false;updateNotebooks();if(!$('libraryView').hidden)renderList();}})();return refreshPromise;
   }
   function renderList(){
     const search=$('searchInput').value.trim().toLowerCase();let items=allNotes();
@@ -40,7 +51,7 @@
     if(currentRoute==='drafts')items=items.filter(d=>d.localDraft);
     if(currentRoute==='recent')items=items.filter(d=>recent.includes(d.id));
     if(currentRoute.startsWith('notebook/'))items=items.filter(d=>d.notebook===currentRoute.slice(9));
-    if(search)items=items.filter(d=>[d.title,d.body||'',d.notebook].join('\n').toLowerCase().includes(search));
+    if(search)items=items.filter(d=>reader.fold([d.title,d.body||'',d.notebook].join('\n')).includes(reader.fold(search)));
     if(currentRoute==='recent')items.sort((a,b)=>recent.indexOf(a.id)-recent.indexOf(b.id));
     else if($('sortSelect').value==='title')items.sort((a,b)=>a.title.localeCompare(b.title,'zh-CN'));
     else items.sort((a,b)=>(b.updated||'').localeCompare(a.updated||''));
@@ -51,7 +62,7 @@
     $('documentCount').textContent=items.length+' 条内容';
     $('documentList').innerHTML=items.map(d=>{const href=d.type==='pdf'?pdfHash(d.id):noteHash(d.id);const snippet=d.type==='pdf'?'PDF 参考资料':(d.body||'').replace(/[#*`>\[\]]/g,'').replace(/\s+/g,' ').slice(0,90)||'还没有正文';return `<div class="document-row"><a class="doc-main" href="${href}"><span class="file-icon ${d.type==='pdf'?'pdf-icon':'note-icon'}">${d.type==='pdf'?'PDF':'文'}</span><span class="doc-text"><strong>${esc(d.title||'未命名笔记')}${d.localDraft?'<span class="draft-badge">草稿</span>':''}</strong><small>${esc(snippet)}</small></span></a><span class="doc-notebook">${esc(d.notebook)}</span><span class="doc-date">${date(d.updated)}</span><span class="doc-actions">${trashed?`<button class="restore" type="button" data-restore="${esc(d.id)}">恢复</button>`:d.type==='note'?`<button type="button" data-favorite="${esc(d.id)}" class="${d.favorite?'selected':''}" aria-label="${d.favorite?'取消收藏':'收藏'}">${d.favorite?'★':'☆'}</button>`:''}</span></div>`;}).join('');
     $('emptyState').hidden=items.length!==0;$('emptyState').querySelector('h2').textContent=search?'没有找到匹配内容':trashed?'回收站是空的':'在这里，留下你的理解';$('emptyState').querySelector('p').textContent=search?'尝试更短的关键词，或在指南内搜索具体内容。':'新建一篇笔记，或导入已有的 Markdown 文件。';$('emptyNewButton').hidden=!!search||trashed;$('documentList').parentElement.hidden=items.length===0;
-    markNavigation();
+    markNavigation();reader.searchLibrary(items,search);
   }
   function newNote(notebook='学习笔记',source=null,title='未命名笔记',body=''){
     const path='notes/'+uuid()+'.md',stamp=now(),note={id:path,path,sha:null,type:'note',title,notebook,body,created:stamp,updated:stamp,favorite:false,trashed:false,source};drafts[path]=note;persistDrafts();updateNotebooks();location.hash=noteHash(path);return note;
@@ -61,10 +72,11 @@
     const html=marked.parse($('noteBody').value,{gfm:true,breaks:false});$('notePreview').innerHTML=DOMPurify.sanitize(html,{FORBID_TAGS:['iframe','form','style','script','object','embed'],FORBID_ATTR:['style']});
     $('notePreview').querySelectorAll('a').forEach(a=>{if(!a.getAttribute('href')?.startsWith('#')){a.target='_blank';a.rel='noopener noreferrer';}});
     $('notePreview').querySelectorAll('pre code').forEach(code=>{const requested=[...code.classList].find(c=>c.startsWith('language-'))?.slice(9);if(requested&&hljs.getLanguage(requested))code.innerHTML=hljs.highlight(code.textContent,{language:requested,ignoreIllegals:true}).value;});
+    if(current?.type==='note')reader.mount(current);
     if(!$('noteBody').value.trim())$('notePreview').innerHTML='<p style="color:var(--subtle)">还没有正文，切换到编辑开始记录。</p>';
   }
   function showNote(note){
-    current={...note};$('noteTitle').value=note.title;$('noteNotebook').value=note.notebook;$('noteBody').value=note.body;$('conflictPanel').hidden=true;
+    current={...note};$('syncNotice').hidden=true;$('noteTitle').value=note.title;$('noteNotebook').value=note.notebook;$('noteBody').value=note.body;$('conflictPanel').hidden=true;
     $('saveStatus').textContent=drafts[note.id]?'草稿保存在此设备':'已发布到 GitHub';$('noteFavoriteButton').textContent=note.favorite?'★':'☆';$('noteFavoriteButton').setAttribute('aria-label',note.favorite?'取消收藏笔记':'收藏笔记');$('trashNoteButton').textContent=note.trashed?'恢复笔记':'移入回收站';
     $('noteFooter').textContent=(note.updated?'更新于 '+date(note.updated)+' · ':'')+'Markdown 笔记 · 发布后公开可见';$('headerContext').textContent=note.title;
     $('sourceReference').hidden=!note.source;if(note.source){const sourceLink=note.source.type==='pdf'?pdfHash(note.source.id):'#guide?anchor='+encodeURIComponent(note.source.hash||'');$('sourceReference').innerHTML=`关联资料：<a href="${sourceLink}">${esc(note.source.title||'驱动开发指南')}</a>`;}
@@ -94,7 +106,7 @@
     updateNotebooks();if(current?.id===id){current={...current,...changes,sha:documents.find(d=>d.id===id)?.sha||null};$('noteFavoriteButton').textContent=current.favorite?'★':'☆';$('trashNoteButton').textContent=current.trashed?'恢复笔记':'移入回收站';}if(!$('libraryView').hidden)renderList();
   }
   async function route(){
-    captureEditor();const sequence=++routeSequence;sidebar(!matchMedia('(max-width:850px)').matches&&!document.body.classList.contains('compact'));
+    captureEditor();reader.leave();const sequence=++routeSequence;sidebar(!matchMedia('(max-width:850px)').matches&&!document.body.classList.contains('compact'));
     const raw=location.hash.slice(1)||'home';const [path,query]=raw.split('?');const [kind,...rest]=path.split('/');let id;try{id=decodeURIComponent(rest.join('/'));}catch{location.hash='#home';return;}
     for(const section of ['libraryView','guideView','noteView','pdfView'])$(section).hidden=true;
     current=null;currentRoute=kind==='notebook'?'notebook/'+id:kind;
@@ -108,7 +120,7 @@
       let note=drafts[id]||documents.find(d=>d.id===id);
       if(!note&&refreshPromise){await refreshPromise;if(sequence!==routeSequence)return;note=drafts[id]||documents.find(d=>d.id===id);}
       if(!note){notify('这篇笔记尚未载入，正在同步内容。');location.hash='#home';refreshLibrary(true);return;}
-      $('noteView').hidden=false;showNote(note);markNavigation();window.scrollTo(0,0);return;
+      $('noteView').hidden=false;showNote(note);markNavigation();window.scrollTo(0,0);const params=new URLSearchParams(query||'');reader.open(note,{section:params.get('section'),query:params.get('q')});return;
     }
     if(kind==='pdf'){
       let file=documents.find(d=>d.id===id);if(!file&&refreshPromise){await refreshPromise;if(sequence!==routeSequence)return;file=documents.find(d=>d.id===id);}
@@ -137,7 +149,7 @@
   $('backdrop').onclick=()=>sidebar(false);
   $('newNoteButton').onclick=$('emptyNewButton').onclick=()=>newNote(currentRoute.startsWith('notebook/')?currentRoute.slice(9):'学习笔记');
   $('refreshButton').onclick=()=>{captureEditor();$('listStatus').textContent='';refreshLibrary();};
-  $('searchInput').oninput=renderList;$('sortSelect').onchange=renderList;
+  let librarySearchTimer;$('searchInput').oninput=()=>{clearTimeout(librarySearchTimer);librarySearchTimer=setTimeout(renderList,180);};$('noteSync').onclick=()=>refreshLibrary();$('sortSelect').onchange=renderList;
   $('newNotebookButton').onclick=()=>{$('notebookName').value='';$('notebookDialog').showModal();};
   $('notebookForm').onsubmit=e=>{e.preventDefault();const name=$('notebookName').value.trim();if(!name)return;$('notebookDialog').close();newNote(name);};
   $('connectButton').onclick=()=>{$('connectError').textContent='';$('connectDialog').showModal();};
