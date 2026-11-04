@@ -27,19 +27,21 @@
       catch(error){this.token='';throw error;}
     }
     disconnect(){this.token='';}
-    async directory(path){try{return await this.api('/contents/'+encodePath(path)+'?ref='+encodeURIComponent(this.config.branch));}catch(error){if(error.status===404)return [];throw error;}}
-    async raw(file){
+    async directory(path,ref=this.config.branch){try{return await this.api('/contents/'+encodePath(path)+'?ref='+encodeURIComponent(ref));}catch(error){if(error.status===404)return [];throw error;}}
+    async raw(file,ref=this.config.branch){
       if(this.cache.get(file.path)?.sha===file.sha)return this.cache.get(file.path).text;
-      const url='https://raw.githubusercontent.com/'+this.config.owner+'/'+this.config.repo+'/'+encodeURIComponent(this.config.branch)+'/'+encodePath(file.path)+'?v='+encodeURIComponent(file.sha);
+      const url='https://raw.githubusercontent.com/'+this.config.owner+'/'+this.config.repo+'/'+encodeURIComponent(ref)+'/'+encodePath(file.path)+'?v='+encodeURIComponent(file.sha);
       const response=await this.transport(url,{cache:'no-store'});if(!response.ok)throw new GitHubError('笔记内容暂时无法载入，请重试。',response.status);
       const text=await response.text();this.cache.set(file.path,{sha:file.sha,text});return text;
     }
     async list(){
-      const [notes,documents]=await Promise.all([this.directory('notes'),this.directory('documents')]);
+      const head=await this.api('/git/ref/heads/'+encodeURIComponent(this.config.branch)),ref=head.object.sha;
+      if(this.lastHead===ref&&this.lastList)return this.lastList;
+      const [notes,documents]=await Promise.all([this.directory('notes',ref),this.directory('documents',ref)]);
       const files=notes.filter(f=>f.type==='file'&&/\.md$/i.test(f.name));const result=[];let cursor=0;
-      await Promise.all(Array.from({length:Math.min(4,files.length)},async()=>{while(cursor<files.length){const file=files[cursor++];result.push(parseNote(await this.raw(file),file));}}));
+      await Promise.all(Array.from({length:Math.min(4,files.length)},async()=>{while(cursor<files.length){const file=files[cursor++];result.push(parseNote(await this.raw(file,ref),file));}}));
       for(const file of documents.filter(f=>f.type==='file'&&/\.pdf$/i.test(f.name)))result.push({id:file.path,path:file.path,sha:file.sha,type:'pdf',title:file.name.replace(/^[a-f0-9-]{36}--/i,'').replace(/\.pdf$/i,''),notebook:'参考资料',size:file.size});
-      return result;
+      this.lastHead=ref;this.lastList=result;return result;
     }
     async save(note){
       if(!this.token)throw new GitHubError('请先连接 GitHub，再保存到云端。',401);
