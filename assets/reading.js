@@ -7,12 +7,13 @@
   function pattern(q){const text=fold(q.trim()).replace(/[.*+?^${}()|[\]\\]/g,'\\$&').replace(/i2c/g,'(?:i2c|i²c|iic)');return text?new RegExp(text,'gi'):null;}
   function anchor(text,seen){let hash=2166136261;for(const c of text.trim())hash=Math.imul(hash^c.codePointAt(0),16777619);const base='s-'+(hash>>>0).toString(36),n=(seen.get(base)||0)+1;seen.set(base,n);return base+(n>1?'-'+n:'');}
   function outline(root){const seen=new Map();return [...root.querySelectorAll('h2,h3,h4')].filter(h=>h.textContent.trim()!=='目录').map(h=>({el:h,id:anchor(h.textContent,seen),text:h.textContent.trim(),level:Number(h.tagName[1])}));}
+  function inset(){return document.querySelector('.app-header').getBoundingClientRect().height+document.querySelector('.reading-tools').getBoundingClientRect().height+14;}
   function visible(){return note&&!$('noteView').hidden&&$('editorLayout').dataset.mode!=='edit';}
-  function position(){if(!visible())return null;let h=heads[0];for(const item of heads){if(item.el.getBoundingClientRect().top<=185)h=item;else break;}return h?{section:h.id,offset:scrollY-(h.el.getBoundingClientRect().top+scrollY),title:h.text}:null;}
+  function position(){if(!visible())return null;let h=heads[0];for(const item of heads){if(item.el.getBoundingClientRect().top<=inset()+15)h=item;else break;}return h?{section:h.id,offset:scrollY-(h.el.getBoundingClientRect().top+scrollY),title:h.text}:null;}
   function remember(){if(navigating)return;const p=position();if(p)lastPosition=p;if(p)try{localStorage.setItem('notebook.reading.'+note.id,JSON.stringify(p));}catch{}}
   function stored(){try{return JSON.parse(localStorage.getItem('notebook.reading.'+note.id)||'null');}catch{return null;}}
-  function restore(p){if(!p||!visible())return;const target=heads.find(h=>h.id===p.section);if(target)window.scrollTo({top:Math.max(0,target.el.getBoundingClientRect().top+scrollY+(p.offset??-170)),behavior:'instant'});}
-  function jump(id){restore({section:id,offset:-170});remember();$('outlinePanel').classList.remove('open');$('outlineToggle').setAttribute('aria-expanded','false');active();}
+  function restore(p){if(!p||!visible())return;const target=heads.find(h=>h.id===p.section);if(target)window.scrollTo({top:Math.max(0,target.el.getBoundingClientRect().top+scrollY+(p.offset??-inset())),behavior:'instant'});}
+  function jump(id){restore({section:id,offset:-inset()});remember();$('outlinePanel').classList.remove('open');$('outlineToggle').setAttribute('aria-expanded','false');active();}
   function active(){if(!visible())return;const p=position();for(const b of $('outlineList').querySelectorAll('[data-jump]')){const selected=b.dataset.jump===p?.section;b.classList.toggle('active',selected);if(selected)b.setAttribute('aria-current','location');else b.removeAttribute('aria-current');}$('readingProgress').textContent=p?'正在阅读：'+p.title:'';}
   function clearMarks(){for(const m of marks){if(m.parentNode)m.replaceWith(document.createTextNode(m.textContent));}marks=[];hit=-1;$('notePreview').normalize();}
   function move(delta){if(!marks.length)return;if(hit>=0)marks[hit].classList.remove('current-match');hit=(hit+delta+marks.length)%marks.length;marks[hit].classList.add('current-match');marks[hit].scrollIntoView({block:'center',behavior:'instant'});$('findCount').textContent=(hit+1)+' / '+marks.length;}
