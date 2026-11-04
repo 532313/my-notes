@@ -76,6 +76,7 @@
     const html=marked.parse($('noteBody').value,{gfm:true,breaks:false});$('notePreview').innerHTML=DOMPurify.sanitize(html,{FORBID_TAGS:['iframe','form','style','script','object','embed'],FORBID_ATTR:['style']});
     $('notePreview').querySelectorAll('a').forEach(a=>{if(!a.getAttribute('href')?.startsWith('#')){a.target='_blank';a.rel='noopener noreferrer';}});
     $('notePreview').querySelectorAll('pre code').forEach(code=>{const requested=[...code.classList].find(c=>c.startsWith('language-'))?.slice(9);if(requested&&hljs.getLanguage(requested))code.innerHTML=hljs.highlight(code.textContent,{language:requested,ignoreIllegals:true}).value;});
+    window.NoteHeatmap?.mount($('notePreview'));
     if(current?.type==='note')reader.mount(current);
     if(!$('noteBody').value.trim())$('notePreview').innerHTML='<p style="color:var(--subtle)">还没有正文，切换到编辑开始记录。</p>';
   }
