@@ -40,7 +40,9 @@
       const [notes,documents]=await Promise.all([this.directory('notes',ref),this.directory('documents',ref)]);
       const files=notes.filter(f=>f.type==='file'&&/\.md$/i.test(f.name));const result=[];let cursor=0;
       await Promise.all(Array.from({length:Math.min(4,files.length)},async()=>{while(cursor<files.length){const file=files[cursor++];result.push(parseNote(await this.raw(file,ref),file));}}));
-      for(const file of documents.filter(f=>f.type==='file'&&/\.pdf$/i.test(f.name)))result.push({id:file.path,path:file.path,sha:file.sha,type:'pdf',title:file.name.replace(/^[a-f0-9-]{36}--/i,'').replace(/\.pdf$/i,''),notebook:'参考资料',size:file.size});
+      const trashFile=documents.find(f=>f.name==='.trash.json');let pdfTrash={};
+      if(trashFile){const metadata=JSON.parse(await this.raw(trashFile,ref));if(metadata.version!==1||!metadata.files||typeof metadata.files!=='object'||Array.isArray(metadata.files))throw new Error('PDF 回收站记录无法读取，请检查后重试。');pdfTrash=metadata.files;}
+      for(const file of documents.filter(f=>f.type==='file'&&/\.pdf$/i.test(f.name))){const state=pdfTrash[file.path];result.push({id:file.path,path:file.path,sha:file.sha,type:'pdf',title:file.name.replace(/^[a-f0-9-]{36}--/i,'').replace(/\.pdf$/i,''),notebook:'参考资料',size:file.size,trashed:state?.sha===file.sha&&state.trashed===true,updated:state?.sha===file.sha?state.updated:null});}
       this.lastHead=ref;this.lastList=result;return result;
     }
     async save(note){
@@ -48,7 +50,25 @@
       if(!/^notes\/[\w\u0080-\uffff .-]+\.md$/.test(note.path)||note.path.includes('..'))throw new Error('无效的笔记路径');
       const text=serializeNote(note);const payload={message:'更新笔记：'+note.title.slice(0,80),content:base64(text),branch:this.config.branch};if(note.sha)payload.sha=note.sha;
       const data=await this.api('/contents/'+encodePath(note.path),{method:'PUT',body:JSON.stringify(payload)});
-      const saved={...note,sha:data.content.sha};this.cache.set(note.path,{sha:saved.sha,text});return saved;
+      const saved={...note,sha:data.content.sha};this.cache.set(note.path,{sha:saved.sha,text});this.lastHead=null;this.lastList=null;return saved;
+    }
+    async setPdfTrashed(doc,trashed){
+      if(!this.token)throw new GitHubError('请先连接 GitHub，再管理云端文档。',401);
+      if(!/^documents\/[\w\u0080-\uffff .-]+\.pdf$/i.test(doc.path)||doc.path.includes('..'))throw new Error('无效的 PDF 路径');
+      const current=await this.api('/contents/'+encodePath(doc.path)+'?ref='+encodeURIComponent(this.config.branch));
+      if(current.sha!==doc.sha)throw new GitHubError('这份文档已在云端更新，请同步后重试。',409);
+      let metadata={version:1,files:{}},sha;
+      try{const file=await this.api('/contents/documents/.trash.json?ref='+encodeURIComponent(this.config.branch));sha=file.sha;
+        if(file.encoding!=='base64'||typeof file.content!=='string')throw new Error('无法读取 PDF 回收站记录。');
+        const binary=atob(file.content.replace(/\s/g,''));metadata=JSON.parse(new TextDecoder().decode(Uint8Array.from(binary,c=>c.charCodeAt(0))));
+        if(metadata.version!==1||!metadata.files||typeof metadata.files!=='object'||Array.isArray(metadata.files))throw new Error('PDF 回收站记录格式有误，操作未执行。');
+      }catch(error){if(error.status!==404)throw error;}
+      const stamp=new Date().toISOString();
+      if(trashed)metadata.files[doc.path]={sha:doc.sha,trashed:true,updated:stamp};else delete metadata.files[doc.path];
+      const payload={message:(trashed?'移入回收站：':'恢复文档：')+doc.title,content:base64(JSON.stringify(metadata,null,2)+'\n'),branch:this.config.branch};if(sha)payload.sha=sha;
+      await this.api('/contents/documents/.trash.json',{method:'PUT',body:JSON.stringify(payload)});
+      this.cache.delete('documents/.trash.json');this.lastHead=null;this.lastList=null;
+      return {...doc,trashed,updated:stamp};
     }
     async uploadPdf(file,id){
       if(!this.token)throw new GitHubError('请先连接 GitHub，再导入 PDF。',401);
