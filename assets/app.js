@@ -106,8 +106,9 @@
     updateNotebooks();if(current?.id===id){current={...current,...changes,sha:documents.find(d=>d.id===id)?.sha||null};$('noteFavoriteButton').textContent=current.favorite?'★':'☆';$('trashNoteButton').textContent=current.trashed?'恢复笔记':'移入回收站';}if(!$('libraryView').hidden)renderList();
   }
   async function route(){
-    captureEditor();reader.leave();const sequence=++routeSequence;sidebar(!matchMedia('(max-width:850px)').matches&&!document.body.classList.contains('compact'));
+    captureEditor();reader.leave();const sequence=++routeSequence;
     const raw=location.hash.slice(1)||'home';const [path,query]=raw.split('?');const [kind,...rest]=path.split('/');let id;try{id=decodeURIComponent(rest.join('/'));}catch{location.hash='#home';return;}
+    sidebar(!matchMedia('(max-width:850px)').matches&&kind!=='note');
     for(const section of ['libraryView','guideView','noteView','pdfView'])$(section).hidden=true;
     current=null;currentRoute=kind==='notebook'?'notebook/'+id:kind;
     if(kind==='guide'){
