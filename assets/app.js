@@ -108,7 +108,7 @@
   async function route(){
     captureEditor();reader.leave();const sequence=++routeSequence;
     const raw=location.hash.slice(1)||'home';const [path,query]=raw.split('?');const [kind,...rest]=path.split('/');let id;try{id=decodeURIComponent(rest.join('/'));}catch{location.hash='#home';return;}
-    sidebar(!matchMedia('(max-width:850px)').matches&&kind!=='note');
+    sidebar(!matchMedia('(max-width:850px)').matches&&!['note','guide'].includes(kind));
     for(const section of ['libraryView','guideView','noteView','pdfView'])$(section).hidden=true;
     current=null;currentRoute=kind==='notebook'?'notebook/'+id:kind;
     if(kind==='guide'){
@@ -164,6 +164,7 @@
   $('saveNoteButton').onclick=()=>saveCurrent();$('saveCopyButton').onclick=()=>saveCurrent(true);$('downloadNoteButton').onclick=exportCurrent;
   $('noteFavoriteButton').onclick=()=>{captureEditor();if(current)changeNote(current.id,{favorite:!current.favorite});};
   $('trashNoteButton').onclick=async()=>{captureEditor();if(!current)return;const id=current.id,trashed=!current.trashed;await changeNote(id,{trashed});if((drafts[id]||documents.find(d=>d.id===id))?.trashed===trashed)location.hash=trashed?'#trash':'#home';};
+  $('guideDirectoryButton').onclick=()=>$('guideFrame').contentWindow.postMessage({type:'notebook-guide-directory'},location.origin);
   $('guideFrame').onload=()=>{$('guideFrame').dataset.loaded='true';syncGuideTheme();};
   $('guideNoteButton').onclick=()=>{let hash='',title=guide.title;try{const frame=$('guideFrame').contentWindow;hash=frame.location.hash;title=frame.document.getElementById('chapterTitle').textContent||guide.title;}catch{}newNote('Linux 驱动',{type:'guide',hash,title},title+' · 学习笔记');};
   $('pdfNoteButton').onclick=()=>{if(current)newNote('学习笔记',{type:'pdf',id:current.id,title:current.title},current.title+' · 阅读笔记');};
