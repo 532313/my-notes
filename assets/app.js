@@ -35,7 +35,7 @@
     refreshPromise=(async()=>{try{documents=await store.list();disk.write('cache',documents);$('cloudStatus').textContent='已同步';
       if(readingId&&current?.id===readingId&&current.type==='note'){
         const fresh=documents.find(d=>d.id===readingId);
-        if(fresh&&fresh.sha!==current.sha){
+        if(fresh&&(fresh.sha!==current.sha||(!drafts[readingId]&&(fresh.body!==current.body||fresh.title!==current.title||fresh.notebook!==current.notebook)))){
           if(drafts[readingId]){$('syncNotice').hidden=false;$('syncNotice').textContent='云端有新版本；当前显示本机草稿，尚未发布。请查看云端版本并比较后保存或另存副本。';$('conflictPanel').hidden=false;$('conflictLink').href=repoUrl+'/blob/'+encodeURIComponent(C.branch)+'/'+githubPath(fresh.path);$('saveStatus').textContent='本机草稿 · 云端有更新';}
           else{showNote(fresh);setEditorMode(readingMode);requestAnimationFrame(()=>reader.restore(readingPosition));$('syncNotice').hidden=false;$('syncNotice').textContent='当前正文已更新到云端最新版本，阅读位置已保留。';}
         }else if(!fresh&&current.sha){$('syncNotice').hidden=false;$('syncNotice').textContent='云端已找不到这篇笔记，当前内容仍保留在页面；请导出备份或另存副本。';}
