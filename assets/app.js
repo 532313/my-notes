@@ -8,13 +8,14 @@
   const repoUrl='https://github.com/'+C.owner+'/'+C.repo,githubPath=path=>path.split('/').map(encodeURIComponent).join('/');
   const guide={id:'guide',type:'guide',title:'iTOP-RK3568 驱动开发指南',notebook:'参考资料',updated:null};
   let documents=disk.read('cache',[]),drafts=disk.read('drafts',{}),recent=disk.read('recent',[]),current=null,currentRoute='home',editorMode='read';
+  let selectedIds=new Set(),visibleDocIds=[],pendingTrash=null,dialogDelete=null,deleting=false;
   let refreshPromise=null,routeSequence=0,toastTimer,previewTimer,draftTimer,pdfObjectUrl=null,saving=false;
   const systemTheme=matchMedia('(prefers-color-scheme: dark)');let theme='system';
   try{theme=JSON.parse(localStorage.getItem('rk3568.themeMode'))||'system';}catch{}
   const now=()=>new Date().toISOString();
   const uuid=()=>crypto.randomUUID();
   const noteHash=id=>'#note/'+encodeURIComponent(id),pdfHash=id=>'#pdf/'+encodeURIComponent(id);
-  function notify(message){clearTimeout(toastTimer);$('toast').textContent=message;$('toast').hidden=false;toastTimer=setTimeout(()=>$('toast').hidden=true,3600);}
+  function notify(message){clearTimeout(toastTimer);$('toastMessage').textContent=message;$('undoTrashButton').hidden=true;$('toast').hidden=false;toastTimer=setTimeout(()=>$('toast').hidden=true,3600);}
   function date(value){if(!value||Number.isNaN(Date.parse(value)))return '—';return new Intl.DateTimeFormat('zh-CN',{month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit'}).format(new Date(value));}
   function allNotes(){const map=new Map(documents.map(d=>[d.id,d]));for(const draft of Object.values(drafts))map.set(draft.id,{...draft,localDraft:true});return [...map.values()];}
   function persistDrafts(){const saved=disk.write('drafts',drafts);$('draftCount').textContent=Object.keys(drafts).length||'';if(!saved){$('saveStatus').textContent='本机存储已满，请及时导出或保存';notify('本机存储空间不足，请导出 Markdown 或保存到 GitHub。');}return saved;}
@@ -57,10 +58,13 @@
     else items.sort((a,b)=>(b.updated||'').localeCompare(a.updated||''));
     const titles={home:'全部内容',recent:'最近访问',favorites:'收藏',drafts:'本机草稿',trash:'回收站'};
     $('viewTitle').textContent=titles[currentRoute]||currentRoute.slice(9);$('headerContext').textContent=$('viewTitle').textContent;
-    $('viewSubtitle').textContent=trashed?'移入回收站的笔记可以恢复。':currentRoute==='drafts'?'草稿只在当前设备保存，发布后才会同步。':'阅读资料，也留下自己的理解。';
+    $('viewSubtitle').textContent=trashed?'移入回收站的文档可以恢复。':currentRoute==='drafts'?'草稿只在当前设备保存，发布后才会同步。':'阅读资料，也留下自己的理解。';
     document.querySelector('.guide-feature').hidden=!(currentRoute==='home'||currentRoute==='recent')||!!search;
     $('documentCount').textContent=items.length+' 条内容';
-    $('documentList').innerHTML=items.map(d=>{const href=d.type==='pdf'?pdfHash(d.id):noteHash(d.id);const snippet=d.type==='pdf'?'PDF 参考资料':(d.body||'').replace(/[#*`>\[\]]/g,'').replace(/\s+/g,' ').slice(0,90)||'还没有正文';return `<div class="document-row"><a class="doc-main" href="${href}"><span class="file-icon ${d.type==='pdf'?'pdf-icon':'note-icon'}">${d.type==='pdf'?'PDF':'文'}</span><span class="doc-text"><strong>${esc(d.title||'未命名笔记')}${d.localDraft?'<span class="draft-badge">草稿</span>':''}</strong><small>${esc(snippet)}</small></span></a><span class="doc-notebook">${esc(d.notebook)}</span><span class="doc-date">${date(d.updated)}</span><span class="doc-actions">${trashed?`<button class="restore" type="button" data-restore="${esc(d.id)}">恢复</button>`:d.type==='note'?`<button type="button" data-favorite="${esc(d.id)}" class="${d.favorite?'selected':''}" aria-label="${d.favorite?'取消收藏':'收藏'}">${d.favorite?'★':'☆'}</button>`:''}</span></div>`;}).join('');
+    visibleDocIds=items.map(d=>d.id);selectedIds=new Set([...selectedIds].filter(id=>visibleDocIds.includes(id)));if(search)selectedIds.clear();
+    $('documentList').innerHTML=items.map(d=>{const href=d.type==='pdf'?pdfHash(d.id):noteHash(d.id),title=d.title||'未命名文档';const snippet=d.type==='pdf'?'PDF 参考资料':(d.body||'').replace(/[#*`>\[\]]/g,'').replace(/\s+/g,' ').slice(0,90)||'还没有正文';
+      const actions=trashed?`<button class="restore" type="button" data-restore="${esc(d.id)}" aria-label="恢复文档：${esc(title)}">恢复</button>`:`${d.type==='note'?`<button type="button" data-favorite="${esc(d.id)}" class="${d.favorite?'selected':''}" aria-label="${d.favorite?'取消收藏':'收藏'}">${d.favorite?'★':'☆'}</button>`:''}<button class="doc-delete" type="button" data-trash="${esc(d.id)}" aria-label="删除文档：${esc(title)}">删除</button>`;
+      return `<div class="document-row"><input type="checkbox" data-select="${esc(d.id)}" aria-label="选择文档：${esc(title)}" ${selectedIds.has(d.id)?'checked':''}><a class="doc-main" href="${href}"><span class="file-icon ${d.type==='pdf'?'pdf-icon':'note-icon'}">${d.type==='pdf'?'PDF':'文'}</span><span class="doc-text"><strong>${esc(title)}${d.localDraft?'<span class="draft-badge">草稿</span>':''}</strong><small>${esc(snippet)}</small></span></a><span class="doc-notebook">${esc(d.notebook)}</span><span class="doc-date">${date(d.updated)}</span><span class="doc-actions">${actions}</span></div>`;}).join('');updateSelection();
     $('emptyState').hidden=items.length!==0;$('emptyState').querySelector('h2').textContent=search?'没有找到匹配内容':trashed?'回收站是空的':'在这里，留下你的理解';$('emptyState').querySelector('p').textContent=search?'尝试更短的关键词，或在指南内搜索具体内容。':'新建一篇笔记，或导入已有的 Markdown 文件。';$('emptyNewButton').hidden=!!search||trashed;$('documentList').parentElement.hidden=items.length===0;
     markNavigation();reader.searchLibrary(items,search);
   }
@@ -77,13 +81,13 @@
   }
   function showNote(note){
     current={...note};$('syncNotice').hidden=true;$('noteTitle').value=note.title;$('noteNotebook').value=note.notebook;$('noteBody').value=note.body;$('conflictPanel').hidden=true;
-    $('saveStatus').textContent=drafts[note.id]?'草稿保存在此设备':'已发布到 GitHub';$('noteFavoriteButton').textContent=note.favorite?'★':'☆';$('noteFavoriteButton').setAttribute('aria-label',note.favorite?'取消收藏笔记':'收藏笔记');$('trashNoteButton').textContent=note.trashed?'恢复笔记':'移入回收站';
+    $('saveStatus').textContent=drafts[note.id]?'草稿保存在此设备':'已发布到 GitHub';$('noteFavoriteButton').textContent=note.favorite?'★':'☆';$('noteFavoriteButton').setAttribute('aria-label',note.favorite?'取消收藏笔记':'收藏笔记');$('trashNoteButton').textContent=note.trashed?'恢复文档':'删除文档';
     $('noteFooter').textContent=(note.updated?'更新于 '+date(note.updated)+' · ':'')+'Markdown 笔记 · 发布后公开可见';$('headerContext').textContent=note.title;
     $('sourceReference').hidden=!note.source;if(note.source){const sourceLink=note.source.type==='pdf'?pdfHash(note.source.id):'#guide?anchor='+encodeURIComponent(note.source.hash||'');$('sourceReference').innerHTML=`关联资料：<a href="${sourceLink}">${esc(note.source.title||'驱动开发指南')}</a>`;}
     setEditorMode(drafts[note.id]?'edit':'read');renderPreview();addRecent(note.id);if(drafts[note.id]&&!note.body)$('noteTitle').focus();
   }
   async function saveCurrent(copy=false){
-    if(!current||saving)return;if(!requireConnection())return;
+    if(!current||saving||deleting)return;if(!requireConnection())return;
     persistCurrent();let note={...current,title:$('noteTitle').value.trim()||'未命名笔记',notebook:$('noteNotebook').value.trim()||'学习笔记',body:$('noteBody').value,updated:now()};
     const submittedTitle=note.title;
     if(copy){const path='notes/'+uuid()+'.md';note={...note,id:path,path,sha:null,title:note.title+'（副本）',trashed:false,created:now()};}
@@ -103,7 +107,42 @@
     const next={...note,...changes,updated:now()};
     if(!note.sha){drafts[id]=next;persistDrafts();}
     else{if(!requireConnection())return;try{const saved=await store.save(next);documents=documents.map(d=>d.id===id?saved:d);if(drafts[id])drafts[id]={...drafts[id],...changes,sha:saved.sha};disk.write('cache',documents);persistDrafts();}catch(error){notify(error.message);return;}}
-    updateNotebooks();if(current?.id===id){current={...current,...changes,sha:documents.find(d=>d.id===id)?.sha||null};$('noteFavoriteButton').textContent=current.favorite?'★':'☆';$('trashNoteButton').textContent=current.trashed?'恢复笔记':'移入回收站';}if(!$('libraryView').hidden)renderList();
+    updateNotebooks();if(current?.id===id){current={...current,...changes,sha:documents.find(d=>d.id===id)?.sha||null};$('noteFavoriteButton').textContent=current.favorite?'★':'☆';$('trashNoteButton').textContent=current.trashed?'恢复文档':'删除文档';}if(!$('libraryView').hidden)renderList();
+  }
+  function updateSelection(){
+    $('selectionBar').hidden=selectedIds.size===0;$('selectionCount').textContent='已选择 '+selectedIds.size+' 份文档';$('batchTrashButton').textContent=currentRoute==='trash'?'恢复所选':'删除所选';$('batchTrashButton').disabled=deleting;
+    $('selectAllDocs').checked=visibleDocIds.length>0&&selectedIds.size===visibleDocIds.length;$('selectAllDocs').indeterminate=selectedIds.size>0&&selectedIds.size<visibleDocIds.length;
+  }
+  function notifyUndo(message,ids,trashed){notify(message);clearTimeout(toastTimer);$('undoTrashButton').hidden=false;$('undoTrashButton').onclick=()=>trashDocuments(ids,!trashed);toastTimer=setTimeout(()=>$('toast').hidden=true,10000);}
+  function requestTrash(ids,trashed=true){
+    if(deleting||saving){notify('正在保存或处理文档，请稍候。');return;}
+    const docs=allNotes().filter(d=>ids.includes(d.id));if(!docs.length)return;
+    if(trashed&&docs.length>1){dialogDelete={ids:docs.map(d=>d.id),trashed};$('deleteDialogText').textContent='将这 '+docs.length+' 份文档移入回收站，之后可以恢复。';$('deleteDialogList').replaceChildren(...docs.map(d=>{const li=document.createElement('li');li.textContent=d.title||'未命名文档';return li;}));$('deleteDialog').showModal();}
+    else trashDocuments(docs.map(d=>d.id),trashed);
+  }
+  async function trashDocuments(ids,trashed,expected=null){
+    if(deleting||saving){notify('正在保存或处理文档，请稍候。');return false;}captureEditor();
+    const targets=allNotes().filter(d=>ids.includes(d.id)&&!!d.trashed!==trashed);if(!targets.length)return true;
+    const versions=expected||Object.fromEntries(targets.map(d=>[d.id,(documents.find(x=>x.id===d.id)||d).sha||null]));
+    if(targets.some(d=>d.type==='pdf'||documents.find(x=>x.id===d.id)?.sha)&&!store.token){pendingTrash={ids:targets.map(d=>d.id),trashed,expected:versions};requireConnection();return false;}
+    deleting=true;const done=[],failed=[];
+    const busy=value=>document.querySelectorAll('[data-trash],[data-restore],[data-select],#selectAllDocs,#batchTrashButton,#trashNoteButton,#trashPdfButton,#saveNoteButton').forEach(b=>b.disabled=value);busy(true);
+    try{
+      for(const target of targets){try{
+        const published=documents.find(d=>d.id===target.id);
+        if((published?.sha||null)!==(versions[target.id]||null))throw new Error('云端版本已变化，请同步并核对后重试。');
+        let saved;
+        if(target.type==='pdf'){saved=await store.setPdfTrashed(published||target,trashed);documents=documents.map(d=>d.id===target.id?saved:d);}
+        else if(published?.sha){saved=await store.save({...published,trashed,updated:now()});documents=documents.map(d=>d.id===target.id?saved:d);if(drafts[target.id])drafts[target.id]={...drafts[target.id],trashed,sha:saved.sha};}
+        else{drafts[target.id]={...drafts[target.id],...target,trashed,updated:now()};saved=drafts[target.id];}
+        if(current?.id===target.id)current={...current,trashed,sha:saved.sha};selectedIds.delete(target.id);done.push(target.id);
+      }catch(error){failed.push((target.title||'未命名文档')+'：'+error.message);}}
+      persistDrafts();disk.write('cache',documents);updateNotebooks();
+      if(current&&done.includes(current.id))location.hash=trashed?'#trash':'#home';else if(!$('libraryView').hidden)renderList();
+      const message=(trashed?'已移入回收站 ':'已恢复 ')+done.length+' 份文档'+(failed.length?'；'+failed.length+' 份未完成。'+failed.join('；'):'');
+      if(done.length)notifyUndo(message,done,trashed);else notify('操作未完成。'+failed.join('；'));
+      return failed.length===0;
+    }finally{deleting=false;busy(false);updateSelection();}
   }
   async function route(){
     captureEditor();reader.leave();const sequence=++routeSequence;
@@ -126,7 +165,7 @@
     if(kind==='pdf'){
       let file=documents.find(d=>d.id===id);if(!file&&refreshPromise){await refreshPromise;if(sequence!==routeSequence)return;file=documents.find(d=>d.id===id);}
       if(!file){location.hash='#home';return;}
-      current=file;$('pdfView').hidden=false;$('pdfTitle').textContent=file.title;$('headerContext').textContent=file.title;$('pdfStatus').textContent='正在载入 PDF…';$('pdfFrame').removeAttribute('src');addRecent(id);
+      current=file;$('pdfView').hidden=false;$('pdfTitle').textContent=file.title;$('trashPdfButton').textContent=file.trashed?'恢复文档':'删除文档';$('headerContext').textContent=file.title;$('pdfStatus').textContent='正在载入 PDF…';$('pdfFrame').removeAttribute('src');addRecent(id);
       try{const url=await store.pdfUrl(file);if(sequence!==routeSequence){URL.revokeObjectURL(url);return;}if(pdfObjectUrl)URL.revokeObjectURL(pdfObjectUrl);pdfObjectUrl=url;$('pdfFrame').src=url;$('pdfStatus').textContent='';}catch(error){$('pdfStatus').textContent=error.message;}return;
     }
     if(!['home','recent','favorites','drafts','trash','notebook'].includes(kind)){location.hash='#home';return;}
@@ -154,16 +193,16 @@
   $('newNotebookButton').onclick=()=>{$('notebookName').value='';$('notebookDialog').showModal();};
   $('notebookForm').onsubmit=e=>{e.preventDefault();const name=$('notebookName').value.trim();if(!name)return;$('notebookDialog').close();newNote(name);};
   $('connectButton').onclick=()=>{$('connectError').textContent='';$('connectDialog').showModal();};
-  $('connectForm').onsubmit=async e=>{e.preventDefault();$('connectSubmit').disabled=true;$('connectError').textContent='';try{await store.connect($('tokenInput').value);$('tokenInput').value='';$('connectButton').textContent='已连接 GitHub';$('connectDialog').close();notify('已连接，可保存笔记到 GitHub');refreshLibrary(true);}catch(error){$('connectError').textContent=error.message;}finally{$('connectSubmit').disabled=false;}};
+  $('connectForm').onsubmit=async e=>{e.preventDefault();$('connectSubmit').disabled=true;$('connectError').textContent='';try{await store.connect($('tokenInput').value);$('tokenInput').value='';$('connectButton').textContent='已连接 GitHub';const action=pendingTrash;pendingTrash=null;$('connectDialog').close();notify('已连接，可保存笔记到 GitHub');await refreshLibrary(true);if(action)await trashDocuments(action.ids,action.trashed,action.expected);}catch(error){$('connectError').textContent=error.message;}finally{$('connectSubmit').disabled=false;}};
   $('disconnectButton').onclick=()=>{store.disconnect();$('tokenInput').value='';$('connectButton').textContent='连接 GitHub';$('connectDialog').close();notify('已断开连接，草稿仍保留在此设备');};
-  $('connectDialog').addEventListener('close',()=>$('tokenInput').value='');
+  $('connectDialog').addEventListener('close',()=>{$('tokenInput').value='';pendingTrash=null;});
   $('helpButton').onclick=()=>$('helpDialog').showModal();
   $('importButton').onclick=()=>$('importInput').click();$('importInput').onchange=e=>importFiles([...e.target.files]);
   $('noteBody').oninput=()=>{if(!current)return;clearTimeout(draftTimer);clearTimeout(previewTimer);drafts[current.id]={...current};draftTimer=setTimeout(persistCurrent,350);previewTimer=setTimeout(renderPreview,120);};
   for(const id of ['noteTitle','noteNotebook'])$(id).oninput=()=>{if(current){drafts[current.id]={...current};clearTimeout(draftTimer);draftTimer=setTimeout(persistCurrent,350);}};
   $('saveNoteButton').onclick=()=>saveCurrent();$('saveCopyButton').onclick=()=>saveCurrent(true);$('downloadNoteButton').onclick=exportCurrent;
   $('noteFavoriteButton').onclick=()=>{captureEditor();if(current)changeNote(current.id,{favorite:!current.favorite});};
-  $('trashNoteButton').onclick=async()=>{captureEditor();if(!current)return;const id=current.id,trashed=!current.trashed;await changeNote(id,{trashed});if((drafts[id]||documents.find(d=>d.id===id))?.trashed===trashed)location.hash=trashed?'#trash':'#home';};
+  $('trashNoteButton').onclick=$('trashPdfButton').onclick=()=>{if(current)requestTrash([current.id],!current.trashed);};
   $('guideDirectoryButton').onclick=()=>$('guideFrame').contentWindow.postMessage({type:'notebook-guide-directory'},location.origin);
   $('guideFrame').onload=()=>{$('guideFrame').dataset.loaded='true';syncGuideTheme();};
   $('guideNoteButton').onclick=()=>{let hash='',title=guide.title;try{const frame=$('guideFrame').contentWindow;hash=frame.location.hash;title=frame.document.getElementById('chapterTitle').textContent||guide.title;}catch{}newNote('Linux 驱动',{type:'guide',hash,title},title+' · 学习笔记');};
@@ -171,11 +210,16 @@
   document.addEventListener('click',e=>{
     const close=e.target.closest('[data-close]');if(close){$(close.dataset.close).close();return;}
     const favorite=e.target.closest('[data-favorite]');if(favorite){const note=allNotes().find(d=>d.id===favorite.dataset.favorite);if(note)changeNote(note.id,{favorite:!note.favorite});return;}
-    const restore=e.target.closest('[data-restore]');if(restore){changeNote(restore.dataset.restore,{trashed:false});return;}
+    const restore=e.target.closest('[data-restore]');if(restore){requestTrash([restore.dataset.restore],false);return;}
+    const remove=e.target.closest('[data-trash]');if(remove){requestTrash([remove.dataset.trash],true);return;}
     const mode=e.target.closest('button[data-mode]');if(mode){setEditorMode(mode.dataset.mode);return;}
     const tool=e.target.closest('[data-format]');if(tool){format(tool.dataset.format);return;}
     if(e.target.closest('.skip')){e.preventDefault();$('main').focus();}
   });
+  $('selectAllDocs').onchange=e=>{selectedIds=e.target.checked?new Set(visibleDocIds):new Set();for(const box of $('documentList').querySelectorAll('[data-select]'))box.checked=selectedIds.has(box.dataset.select);updateSelection();};
+  $('documentList').addEventListener('change',e=>{const box=e.target.closest('[data-select]');if(!box)return;if(box.checked)selectedIds.add(box.dataset.select);else selectedIds.delete(box.dataset.select);updateSelection();});
+  $('batchTrashButton').onclick=()=>requestTrash([...selectedIds],currentRoute!=='trash');$('clearSelectionButton').onclick=()=>{selectedIds.clear();for(const box of $('documentList').querySelectorAll('[data-select]'))box.checked=false;updateSelection();};
+  $('confirmDeleteButton').onclick=()=>{const action=dialogDelete;dialogDelete=null;$('deleteDialog').close();if(action)trashDocuments(action.ids,action.trashed);};$('cancelDeleteButton').onclick=()=>{$('deleteDialog').close();dialogDelete=null;};$('deleteDialog').addEventListener('close',()=>dialogDelete=null);
   window.addEventListener('hashchange',route);
   window.addEventListener('pagehide',captureEditor);
   window.addEventListener('online',()=>refreshLibrary(true));
