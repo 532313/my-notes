@@ -1,0 +1,38 @@
+
+#driver-heatmap{display:grid;gap:calc(16px*1);color:var(--ink)}
+#driver-heatmap .table th,#driver-heatmap .table td{vertical-align:middle}
+#driver-heatmap #driver-head th{min-width:58px;text-align:center;white-space:normal;font-weight:500}
+#driver-heatmap #driver-head th:first-child{min-width:182px;text-align:left}
+#driver-heatmap #driver-body th{font-weight:400;white-space:nowrap}
+#driver-heatmap .rank{display:inline-block;min-width:28px;color:var(--muted)}
+#driver-heatmap .grade{margin-left:calc(16px*.5);color:var(--muted)}
+#driver-heatmap .cell{padding:3px;text-align:center}
+#driver-heatmap .heat{width:100%;min-height:32px;border:0;border-radius:0;color:var(--ink);font:inherit;font-weight:500}
+#driver-heatmap .core{background:color-mix(in srgb,var(--blue) 62%,var(--surface))}
+#driver-heatmap .related{background:color-mix(in srgb,var(--blue) 20%,var(--surface))}
+#driver-heatmap .absent{background:var(--bg);color:var(--muted)}
+#driver-heatmap .heat[aria-pressed=true]{outline:2px solid var(--ink);outline-offset:-2px}
+#driver-heatmap .legend-item{display:inline-flex;align-items:center;gap:calc(16px*.35)}
+#driver-heatmap .mark{display:inline-grid;place-items:center;width:32px;height:26px}
+#driver-heatmap #driver-detail{display:grid;gap:calc(16px*.5)}
+#driver-heatmap .detail-title{font-weight:500}
+#driver-heatmap .detail-label{color:var(--muted)}
+#driver-heatmap .detail-line{overflow-wrap:anywhere}
+@media(pointer:coarse){#driver-heatmap .heat{min-height:44px;min-width:44px}}
+
+#driver-heatmap{max-width:100%;min-width:0;margin:20px 0 30px;font-size:14px;line-height:1.65}
+#driver-heatmap .table-responsive{max-width:100%;overflow-x:auto;overscroll-behavior-x:contain}
+#driver-heatmap .table{display:table;table-layout:fixed;width:100%;min-width:900px;border-collapse:separate;border-spacing:3px;margin:0}
+#driver-heatmap .table tr{background:transparent}
+#driver-heatmap .table th,#driver-heatmap .table td{border:0;padding:3px;line-height:1.6}
+#driver-heatmap #driver-head th:first-child{width:200px}
+#driver-heatmap .table th{font-size:13px}
+#driver-heatmap .heat{padding:0;min-height:36px;cursor:pointer}
+#driver-heatmap .card{padding:16px;background:var(--bg);border:1px solid var(--line);border-radius:8px}
+#driver-heatmap .viz-row{display:flex;gap:12px;flex-wrap:wrap;align-items:center}
+#driver-heatmap .text-small{font-size:12px}
+#driver-heatmap .text-muted{color:var(--muted)}
+#driver-heatmap .detail-title{font-size:15px}
+#driver-heatmap .detail-link{display:inline-block;margin-top:4px}
+#driver-heatmap .table th:first-child{position:sticky;left:0;background:var(--surface);z-index:1}
+#driver-heatmap button:focus-visible{outline:2px solid var(--blue);outline-offset:1px}
