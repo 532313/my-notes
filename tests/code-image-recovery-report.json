@@ -1,0 +1,476 @@
+{
+  "changedChapters": 74,
+  "pages": 117,
+  "images": 166,
+  "frames": 122,
+  "details": {
+    "116": {
+      "images": 2,
+      "frames": 1
+    },
+    "200": {
+      "images": 1,
+      "frames": 1
+    },
+    "208": {
+      "images": 1,
+      "frames": 1
+    },
+    "215": {
+      "images": 1,
+      "frames": 1
+    },
+    "224": {
+      "images": 1,
+      "frames": 1
+    },
+    "239": {
+      "images": 1,
+      "frames": 1
+    },
+    "257": {
+      "images": 1,
+      "frames": 1
+    },
+    "266": {
+      "images": 1,
+      "frames": 1
+    },
+    "276": {
+      "images": 1,
+      "frames": 1
+    },
+    "278": {
+      "images": 1,
+      "frames": 1
+    },
+    "286": {
+      "images": 1,
+      "frames": 1
+    },
+    "288": {
+      "images": 1,
+      "frames": 1
+    },
+    "299": {
+      "images": 1,
+      "frames": 1
+    },
+    "313": {
+      "images": 1,
+      "frames": 1
+    },
+    "315": {
+      "images": 1,
+      "frames": 1
+    },
+    "323": {
+      "images": 1,
+      "frames": 1
+    },
+    "328": {
+      "images": 1,
+      "frames": 1
+    },
+    "329": {
+      "images": 1,
+      "frames": 1
+    },
+    "335": {
+      "images": 1,
+      "frames": 1
+    },
+    "337": {
+      "images": 1,
+      "frames": 1
+    },
+    "360": {
+      "images": 1,
+      "frames": 1
+    },
+    "370": {
+      "images": 4,
+      "frames": 2
+    },
+    "373": {
+      "images": 1,
+      "frames": 1
+    },
+    "380": {
+      "images": 1,
+      "frames": 1
+    },
+    "385": {
+      "images": 1,
+      "frames": 1
+    },
+    "393": {
+      "images": 1,
+      "frames": 4
+    },
+    "407": {
+      "images": 1,
+      "frames": 1
+    },
+    "427": {
+      "images": 1,
+      "frames": 1
+    },
+    "433": {
+      "images": 1,
+      "frames": 1
+    },
+    "439": {
+      "images": 1,
+      "frames": 1
+    },
+    "443": {
+      "images": 1,
+      "frames": 1
+    },
+    "446": {
+      "images": 1,
+      "frames": 1
+    },
+    "477": {
+      "images": 1,
+      "frames": 1
+    },
+    "479": {
+      "images": 1,
+      "frames": 1
+    },
+    "480": {
+      "images": 1,
+      "frames": 1
+    },
+    "492": {
+      "images": 1,
+      "frames": 1
+    },
+    "514": {
+      "images": 1,
+      "frames": 1
+    },
+    "533": {
+      "images": 1,
+      "frames": 1
+    },
+    "541": {
+      "images": 1,
+      "frames": 1
+    },
+    "549": {
+      "images": 1,
+      "frames": 1
+    },
+    "553": {
+      "images": 1,
+      "frames": 1
+    },
+    "560": {
+      "images": 1,
+      "frames": 1
+    },
+    "562": {
+      "images": 1,
+      "frames": 1
+    },
+    "572": {
+      "images": 1,
+      "frames": 1
+    },
+    "598": {
+      "images": 5,
+      "frames": 1
+    },
+    "602": {
+      "images": 1,
+      "frames": 1
+    },
+    "607": {
+      "images": 1,
+      "frames": 1
+    },
+    "615": {
+      "images": 1,
+      "frames": 1
+    },
+    "622": {
+      "images": 1,
+      "frames": 1
+    },
+    "624": {
+      "images": 1,
+      "frames": 1
+    },
+    "638": {
+      "images": 1,
+      "frames": 1
+    },
+    "644": {
+      "images": 1,
+      "frames": 1
+    },
+    "646": {
+      "images": 1,
+      "frames": 1
+    },
+    "649": {
+      "images": 1,
+      "frames": 1
+    },
+    "651": {
+      "images": 1,
+      "frames": 1
+    },
+    "755": {
+      "images": 1,
+      "frames": 1
+    },
+    "756": {
+      "images": 2,
+      "frames": 2
+    },
+    "780": {
+      "images": 1,
+      "frames": 1
+    },
+    "808": {
+      "images": 1,
+      "frames": 1
+    },
+    "818": {
+      "images": 6,
+      "frames": 1
+    },
+    "824": {
+      "images": 1,
+      "frames": 1
+    },
+    "835": {
+      "images": 1,
+      "frames": 1
+    },
+    "842": {
+      "images": 1,
+      "frames": 1
+    },
+    "846": {
+      "images": 3,
+      "frames": 1
+    },
+    "850": {
+      "images": 1,
+      "frames": 1
+    },
+    "858": {
+      "images": 1,
+      "frames": 1
+    },
+    "862": {
+      "images": 1,
+      "frames": 1
+    },
+    "867": {
+      "images": 5,
+      "frames": 1
+    },
+    "869": {
+      "images": 1,
+      "frames": 1
+    },
+    "871": {
+      "images": 1,
+      "frames": 1
+    },
+    "874": {
+      "images": 1,
+      "frames": 1
+    },
+    "877": {
+      "images": 1,
+      "frames": 1
+    },
+    "879": {
+      "images": 1,
+      "frames": 1
+    },
+    "881": {
+      "images": 1,
+      "frames": 1
+    },
+    "885": {
+      "images": 1,
+      "frames": 1
+    },
+    "888": {
+      "images": 1,
+      "frames": 1
+    },
+    "890": {
+      "images": 1,
+      "frames": 1
+    },
+    "892": {
+      "images": 1,
+      "frames": 1
+    },
+    "894": {
+      "images": 1,
+      "frames": 1
+    },
+    "945": {
+      "images": 1,
+      "frames": 1
+    },
+    "998": {
+      "images": 1,
+      "frames": 1
+    },
+    "1030": {
+      "images": 1,
+      "frames": 1
+    },
+    "1031": {
+      "images": 1,
+      "frames": 1
+    },
+    "1043": {
+      "images": 1,
+      "frames": 1
+    },
+    "1044": {
+      "images": 1,
+      "frames": 1
+    },
+    "1048": {
+      "images": 1,
+      "frames": 1
+    },
+    "1139": {
+      "images": 1,
+      "frames": 1
+    },
+    "1140": {
+      "images": 1,
+      "frames": 1
+    },
+    "1419": {
+      "images": 2,
+      "frames": 1
+    },
+    "1421": {
+      "images": 8,
+      "frames": 1
+    },
+    "1430": {
+      "images": 2,
+      "frames": 1
+    },
+    "1431": {
+      "images": 1,
+      "frames": 1
+    },
+    "1475": {
+      "images": 5,
+      "frames": 1
+    },
+    "1499": {
+      "images": 5,
+      "frames": 1
+    },
+    "1530": {
+      "images": 4,
+      "frames": 1
+    },
+    "1543": {
+      "images": 1,
+      "frames": 1
+    },
+    "1548": {
+      "images": 1,
+      "frames": 1
+    },
+    "1559": {
+      "images": 1,
+      "frames": 1
+    },
+    "1651": {
+      "images": 4,
+      "frames": 1
+    },
+    "1778": {
+      "images": 1,
+      "frames": 1
+    },
+    "1787": {
+      "images": 1,
+      "frames": 1
+    },
+    "1797": {
+      "images": 1,
+      "frames": 1
+    },
+    "1807": {
+      "images": 1,
+      "frames": 1
+    },
+    "1811": {
+      "images": 1,
+      "frames": 1
+    },
+    "1813": {
+      "images": 1,
+      "frames": 1
+    },
+    "1819": {
+      "images": 1,
+      "frames": 1
+    },
+    "1827": {
+      "images": 1,
+      "frames": 1
+    },
+    "1830": {
+      "images": 1,
+      "frames": 1
+    },
+    "1837": {
+      "images": 1,
+      "frames": 1
+    },
+    "1852": {
+      "images": 1,
+      "frames": 1
+    },
+    "1862": {
+      "images": 1,
+      "frames": 1
+    },
+    "1918": {
+      "images": 2,
+      "frames": 1
+    },
+    "1921": {
+      "images": 3,
+      "frames": 1
+    },
+    "1922": {
+      "images": 3,
+      "frames": 1
+    },
+    "1935": {
+      "images": 1,
+      "frames": 1
+    },
+    "1942": {
+      "images": 1,
+      "frames": 1
+    },
+    "2047": {
+      "images": 2,
+      "frames": 1
+    }
+  }
+}
