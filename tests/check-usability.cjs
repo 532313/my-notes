@@ -7,6 +7,12 @@ const writes=repo=>repo.calls.filter(c=>c.method!=='GET').length;
 async function open(a,path=id){a.w.location.hash='#note/'+encodeURIComponent(path);await wait(()=>!a.$('noteView').hidden&&a.$('noteTitle').value,'open note');}
 async function run(){
   {
+    const repo=new Repo();repo.seed();const original='# 原文标题\n\n## 章节一\n\n正文中的检索目标。';repo.put(id,serialize({...note('正常笔记',false),body:original}));const a=await app(repo);await open(a);const {$,w}=a;
+    assert.equal($('noteReadTitle').textContent,'正常笔记');assert.equal($('notePreview').firstElementChild.hidden,true);assert.equal($('noteBody').value,original);assert.match($('noteReadTitle').title,/原文标题/);checks.push('阅读页只显示一个标题，原始 Markdown 和标题信息保留');
+    $('noteActions').open=true;$('readingTop').click();assert.equal($('noteActions').open,false);assert.equal(writes(repo),0);checks.push('更多菜单可执行原有操作，执行后自动收起');
+    w.location.hash='#note/'+encodeURIComponent(id)+'?q='+encodeURIComponent('检索目标');await wait(()=>$('noteFindPanel').open&&$('noteFind').value==='检索目标','search panel');await wait(()=>$('notePreview').querySelector('mark'),'search target');$('noteFind').dispatchEvent(new w.KeyboardEvent('keydown',{key:'Escape',bubbles:true}));assert.equal($('noteFindPanel').open,false);assert.equal(w.document.activeElement.id,'noteFindToggle');checks.push('搜索链接自动展开查找，Escape 收起并恢复焦点');a.close();
+  }
+  {
     const repo=new Repo();repo.seed();const a=await app(repo);await open(a);const {$,w}=a;
     assert.equal($('noteTitle').readOnly,true);assert.equal($('noteNotebook').readOnly,true);assert.equal($('noteBody').readOnly,true);assert.equal(w.document.querySelector('button[data-mode=read]').getAttribute('aria-pressed'),'true');$('saveNoteButton').click();assert.equal(writes(repo),0);assert.ok(!$('connectDialog').open);assert.equal(Object.keys(JSON.parse(w.localStorage.getItem('notebook.drafts'))).length,0);checks.push('阅读模式只读，重复保存不会产生草稿或云端提交');
     w.document.querySelector('button[data-mode=edit]').click();assert.equal($('noteTitle').readOnly,false);write(a,'noteBody','本机未发布修改');await wait(()=>!$('discardDraftButton').hidden,'draft actions');w.document.querySelector('button[data-mode=read]').click();assert.equal($('noteTitle').readOnly,true);
