@@ -1,0 +1,14 @@
+const fs=require('fs'),path=require('path'),assert=require('node:assert/strict'),vm=require('vm');
+const {JSDOM}=require(process.env.NOTEBOOK_JSDOM||'jsdom');const base=path.resolve(__dirname,'../guide/3568阅读资源');
+const dom=new JSDOM('<main></main>',{runScripts:'outside-only'}),w=dom.window;w.eval(fs.readFileSync(path.join(base,'body-structure.js'),'utf8'));
+const norm=s=>s.replace(/\s/g,'');let chapters=0,headings=0,fields=0,parameters=0;const samples=[];
+for(const name of fs.readdirSync(path.join(base,'chapters')).filter(n=>/^ch\d+\.js$/.test(n))){let data;vm.runInNewContext(fs.readFileSync(path.join(base,'chapters',name),'utf8'),{window:{Handbook:{register:d=>data=d}}});
+ const root=w.document.querySelector('main');root.innerHTML=data.pages.map(p=>`<article class="page-card" data-page="${p.n}"><div class="page-content">${p.html}</div></article>`).join('');
+ const before=norm(root.textContent),codes=[...root.querySelectorAll('.code-box')].map(el=>el.outerHTML),anchors=[...root.querySelectorAll('[id]')].map(el=>el.id),images=root.querySelectorAll('img').length;
+ w.HandbookStructure.format(root);assert.equal(norm(root.textContent),before,name+' text conserved');assert.deepEqual([...root.querySelectorAll('.code-box')].map(el=>el.outerHTML),codes,name+' code unchanged');assert.deepEqual([...root.querySelectorAll('[id]')].map(el=>el.id),anchors);assert.equal(root.querySelectorAll('img').length,images);
+ const html=root.innerHTML;w.HandbookStructure.format(root);assert.equal(root.innerHTML,html,name+' idempotent');
+ const hs=[...root.querySelectorAll('.body-subheading')].map(el=>el.textContent);headings+=hs.length;fields+=root.querySelectorAll('.api-field').length;parameters+=root.querySelectorAll('.api-parameters li').length;chapters++;if(hs.length)samples.push({chapter:name,headings:hs});
+ if(name==='ch082.js'){assert.ok(hs.some(t=>t.includes('1. config_group_init_type_name()')));assert.ok(hs.some(t=>t.includes('2.configfs_register_group()')));assert.equal(root.querySelector('.api-signature code').textContent.includes('const struct config_item_type *type)'),true);assert.equal(root.querySelectorAll('.api-parameters li').length,5);}
+}
+const root=w.document.querySelector('main');root.innerHTML='<article class="page-card" data-page="596"><div class="page-content"><p class="body-copy" hidden>前文。1. config_group_init_type_name()函数</p><p class="body-copy" hidden>函数参数：struct config_group *group：说明。</p></div></article>';const hidden=root.innerHTML;w.HandbookStructure.format(root);assert.equal(root.innerHTML,hidden,'trimmed adjacent chapter stays hidden');
+const report={chapters,headings,fields,parameters,checks:'All chapter text, source code, images and bookmark IDs preserved; formatting idempotent.',samples};fs.writeFileSync(path.join(__dirname,'guide-structure-report.json'),JSON.stringify(report,null,2));console.log(JSON.stringify({...report,samples:samples.slice(0,8)},null,2));w.close();

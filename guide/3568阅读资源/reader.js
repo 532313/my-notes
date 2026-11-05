@@ -231,7 +231,7 @@
         const destination=before.querySelector('code');
         after.querySelectorAll('.code-line').forEach(line=>{line.dataset.sourcePage=sourcePage;destination.append(line);});
         before.dataset.end=after.dataset.end;after.hidden=true;
-      }else if(before.classList.contains('body-copy')&&after.classList.contains('body-copy')&&!/[。！？!?；;：:]\s*$/.test(before.textContent)){
+      }else if(before.classList.contains('body-copy')&&after.classList.contains('body-copy')&&!before.classList.contains('api-field')&&!after.classList.contains('api-field')&&!/[。！？!?；;：:]\s*$/.test(before.textContent)){
         const continuation=document.createElement('span');continuation.dataset.sourcePage=sourcePage;
         if(/[A-Za-z0-9]$/.test(before.textContent)&&/^[A-Za-z0-9]/.test(after.textContent))before.append(' ');
         while(after.firstChild)continuation.append(after.firstChild);
@@ -263,7 +263,7 @@
     for(const [id,item,label] of [['prevChapter',prev,'← 上一章'],['nextChapter',next,'下一章 →']]){const a=$(id);a.hidden=!item;if(item){a.href='#'+item.id;a.innerHTML=`<small>${label}</small>${esc(item.title)}`;}}
     if(!same){$('chapterContent').replaceChildren();$('chapterStatus').textContent='正在载入本章…';window.scrollTo(0,0);}
     try {
-      if(!same){const data=await loadChapter(unit.id);if(revision!==routeVersion)return;$('chapterContent').innerHTML=data.pages.map(pageMarkup).join('');trimChapterBoundaries(unit);mergePageContinuations();colorizeCode();prepareSequenceCopy();}
+      if(!same){const data=await loadChapter(unit.id);if(revision!==routeVersion)return;$('chapterContent').innerHTML=data.pages.map(pageMarkup).join('');trimChapterBoundaries(unit);window.HandbookStructure?.format($('chapterContent'));mergePageContinuations();colorizeCode();prepareSequenceCopy();}
       if(revision!==routeVersion)return;
       $('chapterStatus').textContent='';setMode(mode,false);clearHighlights();
       if(route.q)highlightPage(route.page,route.q);
