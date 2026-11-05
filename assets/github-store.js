@@ -70,6 +70,38 @@
       this.cache.delete('documents/.trash.json');this.lastHead=null;this.lastList=null;
       return {...doc,trashed,updated:stamp};
     }
+    async deleteDocuments(docs){
+      if(!this.token)throw new GitHubError('请先连接 GitHub，再永久删除云端文档。',401);
+      if(!docs.length)return;
+      for(const doc of docs){
+        const valid=doc.type==='note'?/^notes\/[\w\u0080-\uffff .-]+\.md$/.test(doc.path):doc.type==='pdf'&&/^documents\/[\w\u0080-\uffff .-]+\.pdf$/i.test(doc.path);
+        if(!valid||doc.path.includes('..')||!doc.sha||doc.trashed!==true)throw new Error('只能永久删除回收站中的笔记或 PDF。');
+      }
+      const conflict=()=>new GitHubError('云端文档已更新或恢复，本次未删除，请同步并核对后重试。',409);
+      const head=await this.api('/git/ref/heads/'+encodeURIComponent(this.config.branch)),ref=head.object.sha;
+      const hasNotes=docs.some(d=>d.type==='note'),hasPdf=docs.some(d=>d.type==='pdf');
+      const [commit,notes,documents]=await Promise.all([this.api('/git/commits/'+ref),hasNotes?this.directory('notes',ref):[],hasPdf?this.directory('documents',ref):[]]);
+      const files=new Map([...notes,...documents].map(f=>[f.path,f]));
+      let metadata;
+      if(hasPdf){
+        const trashFile=files.get('documents/.trash.json');if(!trashFile)throw conflict();
+        metadata=JSON.parse(await this.raw(trashFile,ref));
+        if(metadata.version!==1||!metadata.files||typeof metadata.files!=='object'||Array.isArray(metadata.files))throw new Error('PDF 回收站记录格式有误，未执行永久删除。');
+      }
+      for(const doc of docs){
+        const file=files.get(doc.path);if(!file||file.type!=='file'||file.sha!==doc.sha)throw conflict();
+        if(doc.type==='note'){if(!parseNote(await this.raw(file,ref),file).trashed)throw conflict();}
+        else{const state=metadata.files[doc.path];if(state?.sha!==doc.sha||state.trashed!==true)throw conflict();delete metadata.files[doc.path];}
+      }
+      // Commit files and PDF trash metadata together; reject concurrent branch updates.
+      const tree=docs.map(d=>({path:d.path,mode:'100644',type:'blob',sha:null}));
+      if(hasPdf)tree.push({path:'documents/.trash.json',mode:'100644',type:'blob',content:JSON.stringify(metadata,null,2)+'\n'});
+      const nextTree=await this.api('/git/trees',{method:'POST',body:JSON.stringify({base_tree:commit.tree.sha,tree})});
+      const nextCommit=await this.api('/git/commits',{method:'POST',body:JSON.stringify({message:'永久删除回收站文档：'+docs.length+' 份',tree:nextTree.sha,parents:[ref]})});
+      try{await this.api('/git/refs/heads/'+encodeURIComponent(this.config.branch),{method:'PATCH',body:JSON.stringify({sha:nextCommit.sha,force:false})});}
+      catch(error){if(error.status===409||error.status===422)throw conflict();throw error;}
+      for(const doc of docs)this.cache.delete(doc.path);if(hasPdf)this.cache.delete('documents/.trash.json');this.lastHead=null;this.lastList=null;
+    }
     async uploadPdf(file,id){
       if(!this.token)throw new GitHubError('请先连接 GitHub，再导入 PDF。',401);
       if(file.size>10*1024*1024)throw new Error('PDF 请控制在 10 MB 以内。');

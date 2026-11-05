@@ -30,6 +30,7 @@
   function updateNotebooks(){const counts=new Map([['学习笔记',0],['参考资料',0]]);for(const doc of allNotes().filter(d=>!d.trashed))counts.set(doc.notebook,(counts.get(doc.notebook)||0)+1);$('notebookList').innerHTML=[...counts].map(([name,count])=>`<a href="#notebook/${encodeURIComponent(name)}" data-notebook="${esc(name)}">▱ ${esc(name)}<span>${count}</span></a>`).join('');$('notebookOptions').innerHTML=[...counts.keys()].map(name=>`<option value="${esc(name)}"></option>`).join('');markNavigation();}
   function markNavigation(){document.querySelectorAll('[data-view]').forEach(a=>{a.classList.toggle('active',a.dataset.view===currentRoute);});$('guideNav').classList.toggle('active',currentRoute==='guide');document.querySelectorAll('[data-notebook]').forEach(a=>a.classList.toggle('active',currentRoute==='notebook/'+a.dataset.notebook));}
   async function refreshLibrary(quiet=false){
+    if(deleting)return;
     if(refreshPromise)return refreshPromise;
     captureEditor();const readingId=current?.id,readingPosition=reader.position(),readingMode=editorMode;
     $('cloudStatus').textContent='正在同步…';$('refreshButton').disabled=true;$('noteSync').disabled=true;
@@ -58,15 +59,15 @@
     else items.sort((a,b)=>(b.updated||'').localeCompare(a.updated||''));
     const titles={home:'全部内容',recent:'最近访问',favorites:'收藏',drafts:'本机草稿',trash:'回收站'};
     $('viewTitle').textContent=titles[currentRoute]||currentRoute.slice(9);$('headerContext').textContent=$('viewTitle').textContent;
-    $('viewSubtitle').textContent=trashed?'移入回收站的文档可以恢复。':currentRoute==='drafts'?'草稿只在当前设备保存，发布后才会同步。':'阅读资料，也留下自己的理解。';
+    $('viewSubtitle').textContent=trashed?'可恢复文档，或永久删除不再需要的内容。':currentRoute==='drafts'?'草稿只在当前设备保存，发布后才会同步。':'阅读资料，也留下自己的理解。';
     document.querySelector('.guide-feature').hidden=!(currentRoute==='home'||currentRoute==='recent')||!!search;
     $('documentCount').textContent=items.length+' 条内容';
     visibleDocIds=items.map(d=>d.id);selectedIds=new Set([...selectedIds].filter(id=>visibleDocIds.includes(id)));if(search)selectedIds.clear();
     $('documentList').innerHTML=items.map(d=>{const href=d.type==='pdf'?pdfHash(d.id):noteHash(d.id),title=d.title||'未命名文档';const snippet=d.type==='pdf'?'PDF 参考资料':(d.body||'').replace(/[#*`>\[\]]/g,'').replace(/\s+/g,' ').slice(0,90)||'还没有正文';
-      const actions=trashed?`<button class="restore" type="button" data-restore="${esc(d.id)}" aria-label="恢复文档：${esc(title)}">恢复</button>`:`${d.type==='note'?`<button type="button" data-favorite="${esc(d.id)}" class="${d.favorite?'selected':''}" aria-label="${d.favorite?'取消收藏':'收藏'}">${d.favorite?'★':'☆'}</button>`:''}<button class="doc-delete" type="button" data-trash="${esc(d.id)}" aria-label="删除文档：${esc(title)}">删除</button>`;
+      const actions=trashed?`<button class="restore" type="button" data-restore="${esc(d.id)}" aria-label="恢复文档：${esc(title)}">恢复</button><button class="doc-delete" type="button" data-permanent-delete="${esc(d.id)}" aria-label="永久删除文档：${esc(title)}">永久删除</button>`:`${d.type==='note'?`<button type="button" data-favorite="${esc(d.id)}" class="${d.favorite?'selected':''}" aria-label="${d.favorite?'取消收藏':'收藏'}">${d.favorite?'★':'☆'}</button>`:''}<button class="doc-delete" type="button" data-trash="${esc(d.id)}" aria-label="删除文档：${esc(title)}">删除</button>`;
       return `<div class="document-row"><input type="checkbox" data-select="${esc(d.id)}" aria-label="选择文档：${esc(title)}" ${selectedIds.has(d.id)?'checked':''}><a class="doc-main" href="${href}"><span class="file-icon ${d.type==='pdf'?'pdf-icon':'note-icon'}">${d.type==='pdf'?'PDF':'文'}</span><span class="doc-text"><strong>${esc(title)}${d.localDraft?'<span class="draft-badge">草稿</span>':''}</strong><small>${esc(snippet)}</small></span></a><span class="doc-notebook">${esc(d.notebook)}</span><span class="doc-date">${date(d.updated)}</span><span class="doc-actions">${actions}</span></div>`;}).join('');updateSelection();
-    $('emptyState').hidden=items.length!==0;$('emptyState').querySelector('h2').textContent=search?'没有找到匹配内容':trashed?'回收站是空的':'在这里，留下你的理解';$('emptyState').querySelector('p').textContent=search?'尝试更短的关键词，或在指南内搜索具体内容。':'新建一篇笔记，或导入已有的 Markdown 文件。';$('emptyNewButton').hidden=!!search||trashed;$('documentList').parentElement.hidden=items.length===0;
-    markNavigation();reader.searchLibrary(items,search);
+    $('emptyState').hidden=items.length!==0;$('emptyState').querySelector('h2').textContent=search?'没有找到匹配内容':trashed?'回收站是空的':'在这里，留下你的理解';$('emptyState').querySelector('p').textContent=search?'尝试更短的关键词，或在指南内搜索具体内容。':trashed?'移入回收站的文档会显示在这里。':'新建一篇笔记，或导入已有的 Markdown 文件。';$('emptyNewButton').hidden=!!search||trashed;$('documentList').parentElement.hidden=items.length===0;
+    markNavigation();reader.searchLibrary(items,search);if(deleting)setDocumentBusy(true);
   }
   function newNote(notebook='学习笔记',source=null,title='未命名笔记',body=''){
     const path='notes/'+uuid()+'.md',stamp=now(),note={id:path,path,sha:null,type:'note',title,notebook,body,created:stamp,updated:stamp,favorite:false,trashed:false,source};drafts[path]=note;persistDrafts();updateNotebooks();location.hash=noteHash(path);return note;
@@ -104,6 +105,7 @@
     finally{saving=false;$('saveNoteButton').disabled=false;}
   }
   async function changeNote(id,changes){
+    if(deleting||saving){notify('正在保存或处理文档，请稍候。');return;}
     const note=allNotes().find(d=>d.id===id);if(!note||note.type!=='note')return;
     const next={...note,...changes,updated:now()};
     if(!note.sha){drafts[id]=next;persistDrafts();}
@@ -112,13 +114,46 @@
   }
   function updateSelection(){
     $('selectionBar').hidden=selectedIds.size===0;$('selectionCount').textContent='已选择 '+selectedIds.size+' 份文档';$('batchTrashButton').textContent=currentRoute==='trash'?'恢复所选':'删除所选';$('batchTrashButton').disabled=deleting;
+    $('batchPermanentDeleteButton').hidden=currentRoute!=='trash';$('batchPermanentDeleteButton').disabled=deleting;
     $('selectAllDocs').checked=visibleDocIds.length>0&&selectedIds.size===visibleDocIds.length;$('selectAllDocs').indeterminate=selectedIds.size>0&&selectedIds.size<visibleDocIds.length;
   }
   function notifyUndo(message,ids,trashed){notify(message);clearTimeout(toastTimer);$('undoTrashButton').hidden=false;$('undoTrashButton').onclick=()=>trashDocuments(ids,!trashed);toastTimer=setTimeout(()=>$('toast').hidden=true,10000);}
+  function showDeleteDialog(docs,action){
+    dialogDelete=action;const permanent=action.kind==='permanent';
+    $('deleteDialogTitle').textContent=permanent?'永久删除这 '+docs.length+' 份文档？':'删除所选文档？';
+    $('deleteDialogText').textContent=permanent?'将删除所列文档及此设备上的相关草稿，无法在网站中恢复。GitHub 提交历史仍会保留旧版本。':'将这 '+docs.length+' 份文档移入回收站，之后可以恢复。';
+    $('confirmDeleteButton').textContent=permanent?'永久删除':'移入回收站';$('confirmDeleteButton').classList.toggle('danger',permanent);
+    $('deleteDialogList').replaceChildren(...docs.map(d=>{const li=document.createElement('li');li.textContent=d.title||'未命名文档';return li;}));$('deleteDialog').showModal();$('cancelDeleteButton').focus();
+  }
+  function setDocumentBusy(value){document.querySelectorAll('[data-trash],[data-restore],[data-permanent-delete],[data-select],[data-favorite],#selectAllDocs,#batchTrashButton,#batchPermanentDeleteButton,#trashNoteButton,#trashPdfButton,#saveNoteButton,#noteFavoriteButton,#importButton,#refreshButton,#noteSync,#noteTitle,#noteNotebook,#noteBody,#newNoteButton,#emptyNewButton').forEach(b=>b.disabled=value);}
+  function requestPermanentDelete(ids){
+    if(deleting||saving){notify('正在保存或处理文档，请稍候。');return;}captureEditor();
+    const docs=allNotes().filter(d=>ids.includes(d.id)&&d.trashed);if(!docs.length){notify('这些文档已不在回收站，请重新选择。');return;}
+    if(docs.some(d=>d.type==='pdf'||documents.find(x=>x.id===d.id)?.sha)&&!store.token){pendingTrash={kind:'permanent',ids:docs.map(d=>d.id)};requireConnection();return;}
+    const expected=Object.fromEntries(docs.map(d=>[d.id,{sha:documents.find(x=>x.id===d.id)?.sha||null,draft:JSON.stringify(drafts[d.id]||null)}]));
+    showDeleteDialog(docs,{kind:'permanent',ids:docs.map(d=>d.id),expected});
+  }
+  async function permanentlyDeleteDocuments(ids,expected){
+    if(deleting||saving){notify('正在保存或处理文档，请稍候。');return;}deleting=true;setDocumentBusy(true);
+    try{
+      if(refreshPromise)await refreshPromise;
+      const targets=ids.map(id=>allNotes().find(d=>d.id===id));
+      for(const target of targets){const version=target&&expected[target.id],published=target&&documents.find(d=>d.id===target.id);
+        if(!target?.trashed||!version||(published&&!published.trashed)||(published?.sha||null)!==version.sha||JSON.stringify(drafts[target.id]||null)!==version.draft)throw new Error('文档已更新或恢复，未执行永久删除，请重新核对。');}
+      const published=targets.map(d=>documents.find(x=>x.id===d.id)).filter(d=>d?.sha);
+      if(published.length)await store.deleteDocuments(published);
+      if(current&&ids.includes(current.id)){clearTimeout(draftTimer);clearTimeout(previewTimer);reader.leave();current=null;location.hash='#trash';if(pdfObjectUrl){URL.revokeObjectURL(pdfObjectUrl);pdfObjectUrl=null;$('pdfFrame').removeAttribute('src');}}
+      documents=documents.filter(d=>!ids.includes(d.id));recent=recent.filter(id=>!ids.includes(id));
+      for(const id of ids){delete drafts[id];selectedIds.delete(id);try{localStorage.removeItem('notebook.reading.'+id);}catch{}}
+      persistDrafts();disk.write('cache',documents);disk.write('recent',recent);updateNotebooks();$('listStatus').textContent='';
+      if(!$('libraryView').hidden)renderList();notify('已永久删除 '+targets.length+' 份文档');
+    }catch(error){$('listStatus').textContent='永久删除未完成：'+error.message;notify('永久删除未完成：'+error.message);}
+    finally{deleting=false;setDocumentBusy(false);updateSelection();}
+  }
   function requestTrash(ids,trashed=true){
     if(deleting||saving){notify('正在保存或处理文档，请稍候。');return;}
     const docs=allNotes().filter(d=>ids.includes(d.id));if(!docs.length)return;
-    if(trashed&&docs.length>1){dialogDelete={ids:docs.map(d=>d.id),trashed};$('deleteDialogText').textContent='将这 '+docs.length+' 份文档移入回收站，之后可以恢复。';$('deleteDialogList').replaceChildren(...docs.map(d=>{const li=document.createElement('li');li.textContent=d.title||'未命名文档';return li;}));$('deleteDialog').showModal();}
+    if(trashed&&docs.length>1)showDeleteDialog(docs,{ids:docs.map(d=>d.id),trashed});
     else trashDocuments(docs.map(d=>d.id),trashed);
   }
   async function trashDocuments(ids,trashed,expected=null){
@@ -127,7 +162,7 @@
     const versions=expected||Object.fromEntries(targets.map(d=>[d.id,(documents.find(x=>x.id===d.id)||d).sha||null]));
     if(targets.some(d=>d.type==='pdf'||documents.find(x=>x.id===d.id)?.sha)&&!store.token){pendingTrash={ids:targets.map(d=>d.id),trashed,expected:versions};requireConnection();return false;}
     deleting=true;const done=[],failed=[];
-    const busy=value=>document.querySelectorAll('[data-trash],[data-restore],[data-select],#selectAllDocs,#batchTrashButton,#trashNoteButton,#trashPdfButton,#saveNoteButton').forEach(b=>b.disabled=value);busy(true);
+    setDocumentBusy(true);
     try{
       for(const target of targets){try{
         const published=documents.find(d=>d.id===target.id);
@@ -143,7 +178,7 @@
       const message=(trashed?'已移入回收站 ':'已恢复 ')+done.length+' 份文档'+(failed.length?'；'+failed.length+' 份未完成。'+failed.join('；'):'');
       if(done.length)notifyUndo(message,done,trashed);else notify('操作未完成。'+failed.join('；'));
       return failed.length===0;
-    }finally{deleting=false;busy(false);updateSelection();}
+    }finally{deleting=false;setDocumentBusy(false);updateSelection();}
   }
   async function route(){
     captureEditor();reader.leave();const sequence=++routeSequence;
@@ -194,7 +229,7 @@
   $('newNotebookButton').onclick=()=>{$('notebookName').value='';$('notebookDialog').showModal();};
   $('notebookForm').onsubmit=e=>{e.preventDefault();const name=$('notebookName').value.trim();if(!name)return;$('notebookDialog').close();newNote(name);};
   $('connectButton').onclick=()=>{$('connectError').textContent='';$('connectDialog').showModal();};
-  $('connectForm').onsubmit=async e=>{e.preventDefault();$('connectSubmit').disabled=true;$('connectError').textContent='';try{await store.connect($('tokenInput').value);$('tokenInput').value='';$('connectButton').textContent='已连接 GitHub';const action=pendingTrash;pendingTrash=null;$('connectDialog').close();notify('已连接，可保存笔记到 GitHub');await refreshLibrary(true);if(action)await trashDocuments(action.ids,action.trashed,action.expected);}catch(error){$('connectError').textContent=error.message;}finally{$('connectSubmit').disabled=false;}};
+  $('connectForm').onsubmit=async e=>{e.preventDefault();$('connectSubmit').disabled=true;$('connectError').textContent='';try{await store.connect($('tokenInput').value);$('tokenInput').value='';$('connectButton').textContent='已连接 GitHub';const action=pendingTrash;pendingTrash=null;$('connectDialog').close();notify('已连接，可保存笔记到 GitHub');await refreshLibrary(true);if(action){if(action.kind==='permanent')requestPermanentDelete(action.ids);else await trashDocuments(action.ids,action.trashed,action.expected);}}catch(error){$('connectError').textContent=error.message;}finally{$('connectSubmit').disabled=false;}};
   $('disconnectButton').onclick=()=>{store.disconnect();$('tokenInput').value='';$('connectButton').textContent='连接 GitHub';$('connectDialog').close();notify('已断开连接，草稿仍保留在此设备');};
   $('connectDialog').addEventListener('close',()=>{$('tokenInput').value='';pendingTrash=null;});
   $('helpButton').onclick=()=>$('helpDialog').showModal();
@@ -212,6 +247,7 @@
     const close=e.target.closest('[data-close]');if(close){$(close.dataset.close).close();return;}
     const favorite=e.target.closest('[data-favorite]');if(favorite){const note=allNotes().find(d=>d.id===favorite.dataset.favorite);if(note)changeNote(note.id,{favorite:!note.favorite});return;}
     const restore=e.target.closest('[data-restore]');if(restore){requestTrash([restore.dataset.restore],false);return;}
+    const permanent=e.target.closest('[data-permanent-delete]');if(permanent){requestPermanentDelete([permanent.dataset.permanentDelete]);return;}
     const remove=e.target.closest('[data-trash]');if(remove){requestTrash([remove.dataset.trash],true);return;}
     const mode=e.target.closest('button[data-mode]');if(mode){setEditorMode(mode.dataset.mode);return;}
     const tool=e.target.closest('[data-format]');if(tool){format(tool.dataset.format);return;}
@@ -220,7 +256,8 @@
   $('selectAllDocs').onchange=e=>{selectedIds=e.target.checked?new Set(visibleDocIds):new Set();for(const box of $('documentList').querySelectorAll('[data-select]'))box.checked=selectedIds.has(box.dataset.select);updateSelection();};
   $('documentList').addEventListener('change',e=>{const box=e.target.closest('[data-select]');if(!box)return;if(box.checked)selectedIds.add(box.dataset.select);else selectedIds.delete(box.dataset.select);updateSelection();});
   $('batchTrashButton').onclick=()=>requestTrash([...selectedIds],currentRoute!=='trash');$('clearSelectionButton').onclick=()=>{selectedIds.clear();for(const box of $('documentList').querySelectorAll('[data-select]'))box.checked=false;updateSelection();};
-  $('confirmDeleteButton').onclick=()=>{const action=dialogDelete;dialogDelete=null;$('deleteDialog').close();if(action)trashDocuments(action.ids,action.trashed);};$('cancelDeleteButton').onclick=()=>{$('deleteDialog').close();dialogDelete=null;};$('deleteDialog').addEventListener('close',()=>dialogDelete=null);
+  $('batchPermanentDeleteButton').onclick=()=>requestPermanentDelete([...selectedIds]);
+  $('confirmDeleteButton').onclick=()=>{const action=dialogDelete;dialogDelete=null;$('deleteDialog').close();if(action){if(action.kind==='permanent')permanentlyDeleteDocuments(action.ids,action.expected);else trashDocuments(action.ids,action.trashed);}};$('cancelDeleteButton').onclick=()=>{$('deleteDialog').close();dialogDelete=null;};$('deleteDialog').addEventListener('close',()=>dialogDelete=null);
   window.addEventListener('hashchange',route);
   window.addEventListener('pagehide',captureEditor);
   window.addEventListener('online',()=>refreshLibrary(true));
