@@ -18,9 +18,9 @@
   function notify(message){clearTimeout(toastTimer);$('toastMessage').textContent=message;$('undoTrashButton').hidden=true;$('toast').hidden=false;toastTimer=setTimeout(()=>$('toast').hidden=true,3600);}
   function date(value){if(!value||Number.isNaN(Date.parse(value)))return '—';return new Intl.DateTimeFormat('zh-CN',{month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit'}).format(new Date(value));}
   function allNotes(){const map=new Map(documents.map(d=>[d.id,d]));for(const draft of Object.values(drafts))map.set(draft.id,{...draft,localDraft:true});return [...map.values()];}
-  function updateDraftControls(){const exists=current?.type==='note'&&!!drafts[current.id];$('discardDraftButton').hidden=!exists;$('discardDraftButton').textContent=documents.some(d=>d.id===current?.id)?'放弃本机修改':'丢弃草稿';$('discardDraftButton').disabled=saving||deleting;}
+  function updateDraftControls(){const exists=current?.type==='note'&&!!drafts[current.id];$('discardDraftButton').hidden=!exists;$('noteView').classList.toggle('has-draft',exists);$('discardDraftButton').textContent=documents.some(d=>d.id===current?.id)?'放弃本机修改':'丢弃草稿';$('discardDraftButton').disabled=saving||deleting;}
   function persistDrafts(){const saved=disk.write('drafts',drafts);$('draftCount').textContent=Object.keys(drafts).length||'';updateDraftControls();if(!saved){$('saveStatus').textContent='本机存储已满，请及时导出或保存';notify('本机存储空间不足，请导出 Markdown 或保存到 GitHub。');}return saved;}
-  function persistCurrent(){if(!current||current.type!=='note')return;const next={...current,title:$('noteTitle').value,notebook:$('noteNotebook').value||'学习笔记',body:$('noteBody').value,updated:now()};current=next;$('headerContext').textContent=next.title.trim()||'未命名笔记';drafts[next.id]=next;if(persistDrafts())$('saveStatus').textContent='草稿已保存在此设备';updateNotebooks();}
+  function persistCurrent(){if(!current||current.type!=='note')return;const next={...current,title:$('noteTitle').value,notebook:$('noteNotebook').value||'学习笔记',body:$('noteBody').value,updated:now()};current=next;$('headerContext').textContent=next.title.trim()||'未命名笔记';$('noteReadTitle').textContent=next.title.trim()||'未命名笔记';drafts[next.id]=next;if(persistDrafts())$('saveStatus').textContent='草稿已保存在此设备';updateNotebooks();}
   function captureEditor(){clearTimeout(draftTimer);if(current&&current.type==='note'&&drafts[current.id])persistCurrent();}
   function addRecent(id){recent=[id,...recent.filter(x=>x!==id)].slice(0,40);disk.write('recent',recent);}
   function setTheme(mode,persist=true){theme=['system','light','dark'].includes(mode)?mode:'system';document.documentElement.classList.toggle('dark',theme==='dark'||(theme==='system'&&systemTheme.matches));$('themeSelect').value=theme;if(persist){try{localStorage.setItem('rk3568.themeMode',JSON.stringify(theme));}catch{}}syncGuideTheme();}
@@ -28,7 +28,7 @@
   systemTheme.addEventListener('change',()=>{if(theme==='system')setTheme(theme,false);});
   function sidebar(open){if(matchMedia('(max-width:850px)').matches){$('sidebar').classList.toggle('open',open);$('backdrop').hidden=!open;document.body.classList.toggle('menu-open',open);$('sidebar').inert=!open;}else{document.body.classList.toggle('compact',!open);$('sidebar').inert=!open;}$('menuButton').setAttribute('aria-expanded',String(open));}
   function requireConnection(){if(store.token)return true;$('connectError').textContent='';$('connectDialog').showModal();return false;}
-  function updateNotebooks(){const counts=new Map([['学习笔记',0],['参考资料',0]]);for(const doc of allNotes().filter(d=>!d.trashed))counts.set(doc.notebook,(counts.get(doc.notebook)||0)+1);$('notebookList').innerHTML=[...counts].map(([name,count])=>`<a href="#notebook/${encodeURIComponent(name)}" data-notebook="${esc(name)}">▱ ${esc(name)}<span>${count}</span></a>`).join('');$('notebookOptions').innerHTML=[...counts.keys()].map(name=>`<option value="${esc(name)}"></option>`).join('');markNavigation();}
+  function updateNotebooks(){const counts=new Map([['学习笔记',0],['参考资料',0]]);for(const doc of allNotes().filter(d=>!d.trashed))counts.set(doc.notebook,(counts.get(doc.notebook)||0)+1);$('notebookList').innerHTML=[...counts].map(([name,count])=>`<a href="#notebook/${encodeURIComponent(name)}" data-notebook="${esc(name)}"><svg class="ui-icon" aria-hidden="true"><use href="#i-notebook"></use></svg><span class="notebook-name">${esc(name)}</span><span>${count}</span></a>`).join('');$('notebookOptions').innerHTML=[...counts.keys()].map(name=>`<option value="${esc(name)}"></option>`).join('');markNavigation();}
   function markNavigation(){document.querySelectorAll('[data-view]').forEach(a=>{a.classList.toggle('active',a.dataset.view===currentRoute);});$('guideNav').classList.toggle('active',currentRoute==='guide');document.querySelectorAll('[data-notebook]').forEach(a=>a.classList.toggle('active',currentRoute==='notebook/'+a.dataset.notebook));}
   function showOfflineState(){$('cloudStatus').textContent='离线';$('cloudStatus').dataset.state='offline';$('cloudStatus').title='当前离线，草稿仍保存在此设备；联网后可同步。';$('listStatus').textContent='当前离线，显示此设备已缓存的内容。草稿继续保存在本机，联网后可同步。';}
   async function refreshLibrary(quiet=false){
@@ -75,7 +75,7 @@
   function newNote(notebook='学习笔记',source=null,title='未命名笔记',body=''){
     const path='notes/'+uuid()+'.md',stamp=now(),note={id:path,path,sha:null,type:'note',title,notebook,body,created:stamp,updated:stamp,favorite:false,trashed:false,source};drafts[path]=note;persistDrafts();updateNotebooks();location.hash=noteHash(path);return note;
   }
-  function setEditorMode(mode){editorMode=['read','edit','split'].includes(mode)?mode:'read';$('editorLayout').dataset.mode=editorMode;$('noteView').dataset.mode=editorMode;$('editorTools').hidden=editorMode==='read';for(const id of ['noteTitle','noteNotebook','noteBody'])$(id).readOnly=editorMode==='read';document.querySelectorAll('button[data-mode]').forEach(button=>{const active=button.dataset.mode===editorMode;button.classList.toggle('active',active);button.setAttribute('aria-pressed',String(active));});}
+  function setEditorMode(mode){editorMode=['read','edit','split'].includes(mode)?mode:'read';$('editorLayout').dataset.mode=editorMode;$('noteView').dataset.mode=editorMode;$('noteReadTitle').textContent=$('noteTitle').value.trim()||'未命名笔记';$('editorTools').hidden=editorMode==='read';for(const id of ['noteTitle','noteNotebook','noteBody'])$(id).readOnly=editorMode==='read';document.querySelectorAll('button[data-mode]').forEach(button=>{const active=button.dataset.mode===editorMode;button.classList.toggle('active',active);button.setAttribute('aria-pressed',String(active));});}
   function prepareNoteLinks(){
     const base=new URL('./',location.href);
     $('notePreview').querySelectorAll('a[href]').forEach(a=>{const href=a.getAttribute('href');let internal=href.startsWith('#');
@@ -216,7 +216,7 @@
     }finally{deleting=false;setDocumentBusy(false);updateSelection();}
   }
   async function route(){
-    captureEditor();reader.leave();const sequence=++routeSequence;
+    captureEditor();reader.leave();$('noteActions').open=false;const sequence=++routeSequence;
     const raw=location.hash.slice(1)||'home';const [path,query]=raw.split('?');const [kind,...rest]=path.split('/');let id;try{id=decodeURIComponent(rest.join('/'));}catch{location.hash='#home';return;}
     sidebar(!matchMedia('(max-width:850px)').matches&&!['note','guide'].includes(kind));
     for(const section of ['libraryView','guideView','noteView','pdfView'])$(section).hidden=true;
@@ -280,6 +280,8 @@
   $('guideNoteButton').onclick=()=>{let hash='',title=guide.title;try{const frame=$('guideFrame').contentWindow;hash=frame.location.hash;title=frame.document.getElementById('chapterTitle').textContent||guide.title;}catch{}newNote('Linux 驱动',{type:'guide',hash,title},title+' · 学习笔记');};
   $('pdfNoteButton').onclick=()=>{if(current)newNote('学习笔记',{type:'pdf',id:current.id,title:current.title},current.title+' · 阅读笔记');};
   document.addEventListener('click',e=>{
+    if(!e.target.closest('#noteActions')||e.target.closest('#noteActions button'))$('noteActions').open=false;
+    if(!e.target.closest('#noteFindPanel'))$('noteFindPanel').open=false;
     const copy=e.target.closest('.copy-note-code');if(copy){copyNoteCode(copy);return;}
     const close=e.target.closest('[data-close]');if(close){$(close.dataset.close).close();return;}
     const favorite=e.target.closest('[data-favorite]');if(favorite){const note=allNotes().find(d=>d.id===favorite.dataset.favorite);if(note)changeNote(note.id,{favorite:!note.favorite});return;}
@@ -301,6 +303,6 @@
   window.addEventListener('offline',showOfflineState);
   window.addEventListener('focus',()=>{if(!saving&&Date.now()-lastSyncedAt>15000)refreshLibrary(true);});
   window.addEventListener('resize',()=>{if(!matchMedia('(max-width:850px)').matches){$('backdrop').hidden=true;document.body.classList.remove('menu-open');$('sidebar').inert=document.body.classList.contains('compact');}else $('sidebar').inert=!$('sidebar').classList.contains('open');});
-  document.addEventListener('keydown',e=>{if(e.key==='Escape'&&$('sidebar').classList.contains('open')){sidebar(false);$('menuButton').focus();}if((e.metaKey||e.ctrlKey)&&e.key==='s'&&current?.type==='note'){e.preventDefault();saveCurrent();}});
+  document.addEventListener('keydown',e=>{if(e.key==='Escape'&&$('noteActions').open){$('noteActions').open=false;$('noteActions').querySelector('summary').focus();}if(e.key==='Escape'&&$('sidebar').classList.contains('open')){sidebar(false);$('menuButton').focus();}if((e.metaKey||e.ctrlKey)&&e.key==='s'&&current?.type==='note'){e.preventDefault();saveCurrent();}});
   refreshLibrary(true);route();
 })();
