@@ -97,4 +97,5 @@ async function run(){
   }
   console.log(JSON.stringify({passed:checks.length,checks,scope:'真实页面 DOM 与 GitHub API 模拟；未删除线上文件。'},null,2));
 }
-run().catch(error=>{console.error(error);process.exitCode=1;});
+module.exports={Repo,app,note,serialize,wait};
+if(require.main===module)run().catch(error=>{console.error(error);process.exitCode=1;});
