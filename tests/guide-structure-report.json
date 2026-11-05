@@ -1,0 +1,746 @@
+{
+  "chapters": 267,
+  "headings": 352,
+  "fields": 91,
+  "parameters": 39,
+  "checks": "All chapter text, source code, images and bookmark IDs preserved; formatting idempotent.",
+  "samples": [
+    {
+      "chapter": "ch001.js",
+      "headings": [
+        "1.准备编译环境",
+        "2.编译步骤"
+      ]
+    },
+    {
+      "chapter": "ch002.js",
+      "headings": [
+        "1.下载交叉编译器",
+        "2.设置环境变量"
+      ]
+    },
+    {
+      "chapter": "ch003.js",
+      "headings": [
+        "1.下载交叉编译器",
+        "2.设置环境变量",
+        "3.检查是否设置成功"
+      ]
+    },
+    {
+      "chapter": "ch006.js",
+      "headings": [
+        "1.mainmenu",
+        "2.source",
+        "3.menu/endmenu",
+        "4.if/endif",
+        "5.choice/endchooice",
+        "6.comment",
+        "7.config",
+        "8.depends on",
+        "9.select"
+      ]
+    },
+    {
+      "chapter": "ch009.js",
+      "headings": [
+        "（1）KBUILD_CFLAGS_MODULE：",
+        "（2）EXTRA_CFLAGS："
+      ]
+    },
+    {
+      "chapter": "ch010.js",
+      "headings": [
+        "（1）KBUILD_CFLAGS_MODULE：",
+        "（2）EXTRA_CFLAGS："
+      ]
+    },
+    {
+      "chapter": "ch018.js",
+      "headings": [
+        "1.struct module *owner",
+        "3.ssize_t (*write) (struct file *, const char __user *, size_t, loff_t *)",
+        "4.long (*unlocked_ioctl) (struct file *, unsigned int, unsigned long)"
+      ]
+    },
+    {
+      "chapter": "ch019.js",
+      "headings": [
+        "1.struct module *owner",
+        "3.ssize_t (*write) (struct file *, const char __user *, size_t, loff_t *)",
+        "4.long (*unlocked_ioctl) (struct file *, unsigned int, unsigned long)",
+        "5.int (*open) (struct inode *, struct file *)",
+        "6.int (*release) (struct inode *, struct file *)"
+      ]
+    },
+    {
+      "chapter": "ch024.js",
+      "headings": [
+        "1.查找复用寄存器"
+      ]
+    },
+    {
+      "chapter": "ch025.js",
+      "headings": [
+        "1.查找复用寄存器",
+        "2.查找方向寄存器"
+      ]
+    },
+    {
+      "chapter": "ch033.js",
+      "headings": [
+        "1.wake_up()函数",
+        "2.wake_up_interruptible()函数"
+      ]
+    },
+    {
+      "chapter": "ch040.js",
+      "headings": [
+        "1.驱动中llseek 函数编写",
+        "2.read()函数编写",
+        "3.write 函数编写"
+      ]
+    },
+    {
+      "chapter": "ch041.js",
+      "headings": [
+        "2.驱动函数"
+      ]
+    },
+    {
+      "chapter": "ch043.js",
+      "headings": [
+        "1.封装步骤1",
+        "2.封装步骤2"
+      ]
+    },
+    {
+      "chapter": "ch046.js",
+      "headings": [
+        "1.边沿触发（Edge-triggered）：",
+        "2.电平触发（Level-sensitive）：",
+        "1. 申请中断函数",
+        "2.获取中断号函数",
+        "3.释放中断函数",
+        "4.中断服务函数",
+        "1.计算中断引脚对应的GPIO 编号",
+        "2.编写实验代码"
+      ]
+    },
+    {
+      "chapter": "ch064.js",
+      "headings": [
+        "1.确定ft5x06 的中断引脚号",
+        "2.确定compatible 属性值",
+        "3.编写ft5x06 设备树",
+        "（1）clock-cells",
+        "（2）clock-frequency",
+        "（3）assigned-clocks 和assigned-clock-rates"
+      ]
+    },
+    {
+      "chapter": "ch065.js",
+      "headings": [
+        "（1）clock-cells",
+        "（2）clock-frequency",
+        "（3）assigned-clocks 和assigned-clock-rates",
+        "（5）assigned-clock-parents",
+        "1.cpus 节点"
+      ]
+    },
+    {
+      "chapter": "ch066.js",
+      "headings": [
+        "1.cpus 节点",
+        "2.cpu-map 节点",
+        "3.socket 节点",
+        "4.cluster 节点",
+        "5.core 节点"
+      ]
+    },
+    {
+      "chapter": "ch067.js",
+      "headings": [
+        "2.确定compatible 属性值",
+        "3.编写设备树"
+      ]
+    },
+    {
+      "chapter": "ch068.js",
+      "headings": [
+        "1.梳理设备树结构"
+      ]
+    },
+    {
+      "chapter": "ch069.js",
+      "headings": [
+        "（2）偏移量引用",
+        "（3）对齐约束："
+      ]
+    },
+    {
+      "chapter": "ch072.js",
+      "headings": [
+        "1.梳理设备树结构"
+      ]
+    },
+    {
+      "chapter": "ch075.js",
+      "headings": [
+        "（1）内存映射型设备：",
+        "（2）非内存映射型设备："
+      ]
+    },
+    {
+      "chapter": "ch078.js",
+      "headings": [
+        "1.procfs 虚拟文件系统",
+        "2.sysfs 虚拟文件系统"
+      ]
+    },
+    {
+      "chapter": "ch079.js",
+      "headings": [
+        "1.procfs 虚拟文件系统",
+        "2.sysfs 虚拟文件系统",
+        "1.configfs_subsystem 结构体"
+      ]
+    },
+    {
+      "chapter": "ch080.js",
+      "headings": [
+        "1.configfs_subsystem 结构体",
+        "2.config_group 结构体",
+        "3.config_item 结构体",
+        "1. config_group_init()函数"
+      ]
+    },
+    {
+      "chapter": "ch081.js",
+      "headings": [
+        "1. config_group_init()函数",
+        "1. config_group_init_type_name()函数",
+        "2.configfs_register_group()函数"
+      ]
+    },
+    {
+      "chapter": "ch082.js",
+      "headings": [
+        "1. config_group_init_type_name()函数",
+        "2.configfs_register_group()函数"
+      ]
+    },
+    {
+      "chapter": "ch090.js",
+      "headings": [
+        "4.类"
+      ]
+    },
+    {
+      "chapter": "ch115.js",
+      "headings": [
+        "1. 函数注释",
+        "2. 变量定义",
+        "3. 发送uevent 前的环境检查和设置",
+        "4.检查是否跳过当前事件的发送",
+        "5.检查标志位和函数操作集以及子系统名称",
+        "7.构建和发送uevent 的环境变量数据",
+        "9. 添加环境变量",
+        "10.uevent 机制"
+      ]
+    },
+    {
+      "chapter": "ch117.js",
+      "headings": [
+        "（1）协议族",
+        "（2）套接字类型",
+        "（3）协议类型"
+      ]
+    },
+    {
+      "chapter": "ch122.js",
+      "headings": [
+        "1.引脚组（Groups）",
+        "2.功能（Function）："
+      ]
+    },
+    {
+      "chapter": "ch123.js",
+      "headings": [
+        "1.引脚组（Groups）",
+        "2.功能（Function）：",
+        "（1）CAN0 控制器（function）中：",
+        "（2）CAN1 控制器（function）中：",
+        "（1）struct pinctrl_ops 结构体",
+        "（2）struct pinmux_ops 结构体",
+        "（3）struct pinconf_ops 结构体",
+        "（1）rockchip_get_groups_count()函数",
+        "（2）rockchip_get_group_name()函数",
+        "（3）rockchip_get_group_pins()函数",
+        "（5）rockchip_dt_free_map()函数",
+        "（1）rockchip_pmx_get_funcs_count()函数",
+        "（2）rockchip_pmx_get_func_name()函数",
+        "（3）rockchip_pmx_get_groups()函数",
+        "（4）rockchip_pmx_set()函数",
+        "（1）rockchip_pinconf_set()函数",
+        "（2）rockchip_pinconf_get()函数"
+      ]
+    },
+    {
+      "chapter": "ch124.js",
+      "headings": [
+        "1. 结构体成员type 取值",
+        "2. 联合体中struct pinctrl_map_mux 结构体原型"
+      ]
+    },
+    {
+      "chapter": "ch127.js",
+      "headings": [
+        "1.猜想1 验证",
+        "2.猜想2 验证"
+      ]
+    },
+    {
+      "chapter": "ch128.js",
+      "headings": [
+        "1.猜想1 验证",
+        "2.猜想2 验证"
+      ]
+    },
+    {
+      "chapter": "ch132.js",
+      "headings": [
+        "（1）获取GPIO 描述符"
+      ]
+    },
+    {
+      "chapter": "ch133.js",
+      "headings": [
+        "（1）获取GPIO 描述符",
+        "（2）释放GPIO 描述符",
+        "（1）函数原型：",
+        "（4）函数功能：",
+        "（5）返回值：",
+        "（1）函数原型：",
+        "（4）函数功能：",
+        "（5）返回值："
+      ]
+    },
+    {
+      "chapter": "ch134.js",
+      "headings": [
+        "（1）函数原型：",
+        "（4）函数功能：",
+        "（5）返回值：",
+        "（1）函数原型：",
+        "（4）函数功能：",
+        "（5）返回值：",
+        "（1）函数原型：",
+        "（4）函数功能：",
+        "（5）返回值：",
+        "（1）函数原型：",
+        "（4）函数功能：",
+        "（5）返回值：无（void）返回值。",
+        "（1）函数原型：",
+        "（3）参数：",
+        "（4）函数功能：",
+        "（5）返回值："
+      ]
+    },
+    {
+      "chapter": "ch135.js",
+      "headings": [
+        "（3）参数：",
+        "（4）函数功能：",
+        "（5）返回值："
+      ]
+    },
+    {
+      "chapter": "ch138.js",
+      "headings": [
+        "1.设备驱动层（Device Driver Layer）"
+      ]
+    },
+    {
+      "chapter": "ch139.js",
+      "headings": [
+        "1.设备驱动层（Device Driver Layer）",
+        "2.核心层（Core Layer）：",
+        "3.事件处理层（Event Handling Layer）"
+      ]
+    },
+    {
+      "chapter": "ch142.js",
+      "headings": [
+        "（1）input_report_key()函数",
+        "（2）input_report_rel()函数",
+        "（2）input_report_abs()函数",
+        "（3）input_report_ff_status()函数",
+        "（4）input_report_switch()函数",
+        "（6）void input_event()函数",
+        "（7）input_sync()函数原型如代码清单142.8 所示。"
+      ]
+    },
+    {
+      "chapter": "ch159.js",
+      "headings": [
+        "1.获取当前温度"
+      ]
+    },
+    {
+      "chapter": "ch162.js",
+      "headings": [
+        "1.计算上拉电阻阻值的最小值",
+        "2.计算上拉电阻阻值的最大值"
+      ]
+    },
+    {
+      "chapter": "ch175.js",
+      "headings": [
+        "1. i2cdetect：扫描i2c 总线设备",
+        "2.i2cdump：读取设备寄存器值",
+        "3.i2cset：向寄存器写入数据",
+        "4.i2cget：读取单个寄存器值",
+        "5.i2ctransfer：支持读写操作"
+      ]
+    },
+    {
+      "chapter": "ch178.js",
+      "headings": [
+        "（1）速度范围:",
+        "（2）ACK 应答:",
+        "（3）时间限制:"
+      ]
+    },
+    {
+      "chapter": "ch179.js",
+      "headings": [
+        "（2）SPI 总线采用同步串行通信机制",
+        "（3）SPI 总线采用主从结构设计",
+        "（4）SPI 总线支持多从设备",
+        "（5）SPI 有硬件SPI 与软件SPI"
+      ]
+    },
+    {
+      "chapter": "ch189.js",
+      "headings": [
+        "1.spidev_test 工具的使用。",
+        "2.spidev_fdx 工具的使用"
+      ]
+    },
+    {
+      "chapter": "ch198.js",
+      "headings": [
+        "（1）tcgetattr()函数",
+        "（3）cfgetispeed()函数和cfgetospeed()函数",
+        "（4）cfsetispeed()函数和cfsetospeed()函数",
+        "（6）tcflow()函数"
+      ]
+    },
+    {
+      "chapter": "ch200.js",
+      "headings": [
+        "（1）工作原理",
+        "（2）硬件连接"
+      ]
+    },
+    {
+      "chapter": "ch202.js",
+      "headings": [
+        "1.npwm：显示此控制器下可用通道数。如图202.8 所示。",
+        "3.unexport：写入相同通道号以删除对应目录并释放资源（只写）。譬如使用echo 0 > u"
+      ]
+    },
+    {
+      "chapter": "ch203.js",
+      "headings": [
+        "1. pwm_config：用于配置pwm 信号的占空比和周期。",
+        "2. pwm_set_polarity：设置pwm 信号的极性（正极性或负极性）。",
+        "3. pwm_enable：使能pwm 输出。",
+        "4. pwm_disable：关闭pwm 输出。",
+        "5. devm_of_pwm_get：从设备树中获取pwm 设备结构体。"
+      ]
+    },
+    {
+      "chapter": "ch204.js",
+      "headings": [
+        "1. pwm_config：用于配置pwm 信号的占空比和周期。",
+        "2. pwm_set_polarity：设置pwm 信号的极性（正极性或负极性）。",
+        "3. pwm_enable：使能pwm 输出。",
+        "4. pwm_disable：关闭pwm 输出。",
+        "5. devm_of_pwm_get：从设备树中获取pwm 设备结构体。",
+        "（1）初始化定时器",
+        "（2）设置定时器",
+        "（3）定时器到期处理"
+      ]
+    },
+    {
+      "chapter": "ch205.js",
+      "headings": [
+        "（1）初始化定时器",
+        "（2）设置定时器",
+        "（3）定时器到期处理",
+        "（4）定时器管理"
+      ]
+    },
+    {
+      "chapter": "ch209.js",
+      "headings": [
+        "(1)显示当前日期和时间"
+      ]
+    },
+    {
+      "chapter": "ch210.js",
+      "headings": [
+        "(1)显示当前日期和时间",
+        "（3）格式化输出",
+        "（1）查看硬件时钟",
+        "(2) 同步硬件时钟与系统时钟",
+        "(1) 读取RTC 时间命令",
+        "(2) 设置RTC 时间命令"
+      ]
+    },
+    {
+      "chapter": "ch211.js",
+      "headings": [
+        "(1) 读取RTC 时间命令",
+        "(2) 设置RTC 时间命令"
+      ]
+    },
+    {
+      "chapter": "ch215.js",
+      "headings": [
+        "1.CAN 总线核心特点",
+        "2. 应用领域",
+        "3.发展历程",
+        "（1）CPU 自带CAN 控制器",
+        "（2）CPU 没有CAN 控制器",
+        "1.CAN 总线信号电平",
+        "2.差分信号和抗干扰",
+        "3.工作状态"
+      ]
+    },
+    {
+      "chapter": "ch216.js",
+      "headings": [
+        "（1）示例1："
+      ]
+    },
+    {
+      "chapter": "ch217.js",
+      "headings": [
+        "1.载波侦听",
+        "2.非破坏性仲裁",
+        "3.回读机制",
+        "1.位错误",
+        "2.填充错误",
+        "3.CRC 错误",
+        "4.格式错误",
+        "5.ACK 错误"
+      ]
+    },
+    {
+      "chapter": "ch219.js",
+      "headings": [
+        "1.设备连接",
+        "2.设置CAN 接囗的波特率",
+        "3.启动和关闭CAN 接口",
+        "4.检查CAN 接口状态"
+      ]
+    },
+    {
+      "chapter": "ch222.js",
+      "headings": [
+        "1.特点",
+        "1.特点",
+        "2.作用",
+        "1.作用",
+        "1.网线种类",
+        "2.网线制作标准",
+        "1.OSI 七层网络模型",
+        "2.TCP/IP 四层模型",
+        "3.区别与联系"
+      ]
+    },
+    {
+      "chapter": "ch223.js",
+      "headings": [
+        "1.MAC 控制器",
+        "2.PHY 芯片",
+        "3.网络变压器",
+        "1.MII 接口",
+        "2.RMII 接口",
+        "3.GMII 接口",
+        "4.RGMII 接口",
+        "5.MDIO 接口",
+        "6.实践"
+      ]
+    },
+    {
+      "chapter": "ch233.js",
+      "headings": [
+        "(1) uint32_t htonl(uint32_t hostlong)",
+        "(2) uint16_t htons(uint16_t hostshort)",
+        "(3) uint32_t ntohl(uint32_t netlong)",
+        "(4) uint16_t ntohs(uint16_t netshort)",
+        "（1）inet_pton：将字符串地址转换为二进制数据",
+        "（2）inet_ntop：将二进制数据转换为字符串地址"
+      ]
+    },
+    {
+      "chapter": "ch234.js",
+      "headings": [
+        "（1）sendto()函数详解",
+        "（2）recvfrom()函数讲解"
+      ]
+    },
+    {
+      "chapter": "ch235.js",
+      "headings": [
+        "(1)connect()函数详解",
+        "(2)listen()函数详解",
+        "(3)accept()函数详解"
+      ]
+    },
+    {
+      "chapter": "ch238.js",
+      "headings": [
+        "（2）音频处理：麦克风拾取的声音信号是模拟信号。",
+        "（3）图像处理：摄像头捕捉的光信号本质上是模拟信号。",
+        "（5）医疗设备：许多生物信号（如心电图、脑电图等）是以模拟信号形式采集的。"
+      ]
+    },
+    {
+      "chapter": "ch239.js",
+      "headings": [
+        "（1）iio_channel_get()函数",
+        "（2）iio_read_channel_raw()函数"
+      ]
+    },
+    {
+      "chapter": "ch240.js",
+      "headings": [
+        "（1）iio_channel_get()函数",
+        "（2）iio_read_channel_raw()函数"
+      ]
+    },
+    {
+      "chapter": "ch251.js",
+      "headings": [
+        "（3）函数参数:",
+        "（4）返回值:"
+      ]
+    },
+    {
+      "chapter": "ch252.js",
+      "headings": [
+        "（3）函数参数:",
+        "（4）返回值:",
+        "（4）返回值:",
+        "（3）函数参数:",
+        "（3）函数参数:",
+        "（4）返回值:",
+        "（1）函数原型:",
+        "（3）函数参数:",
+        "（4）返回值:",
+        "（1）函数原型:",
+        "（2）函数作用:",
+        "（3）函数参数:",
+        "（4）返回值:",
+        "（1）函数原型:",
+        "（3）函数参数:",
+        "（1）函数原型:",
+        "（3）函数参数:",
+        "（4）返回值:",
+        "（1）函数原型:",
+        "（3）函数参数:",
+        "（4）返回值:",
+        "（3）函数参数:",
+        "（4）返回值:",
+        "（3）函数参数:",
+        "（4）返回值:",
+        "（1）函数原型:",
+        "（3）函数参数:",
+        "（4）返回值:",
+        "（3）函数参数:",
+        "（4）返回值:",
+        "（1）函数原型:",
+        "（3）函数参数:",
+        "（4）返回值:",
+        "（3）函数参数:",
+        "（4）返回值:",
+        "（3）函数参数:",
+        "（4）返回值:",
+        "（3）函数参数:",
+        "（4）返回值:",
+        "（3）函数参数:",
+        "（4）返回值:"
+      ]
+    },
+    {
+      "chapter": "ch254.js",
+      "headings": [
+        "（3）函数参数:",
+        "（4）返回值:",
+        "（3）函数参数:",
+        "（4）返回值:"
+      ]
+    },
+    {
+      "chapter": "ch256.js",
+      "headings": [
+        "（1）函数原型:",
+        "（2）函数作用:",
+        "（3）函数参数:",
+        "（1）函数原型:",
+        "（3）函数参数:",
+        "（4）返回值:",
+        "（2）函数作用:",
+        "（4）返回值:"
+      ]
+    },
+    {
+      "chapter": "ch261.js",
+      "headings": [
+        "1.LCD 面板",
+        "2.像素",
+        "3.分辨率",
+        "4.像素格式",
+        "5.PPI",
+        "7.LCD 接口种类",
+        "8.DBI、DPI 和DSI 接口",
+        "1.connector-mirror 技术",
+        "2.VOP-Split 技术",
+        "3.名词解释"
+      ]
+    },
+    {
+      "chapter": "ch264.js",
+      "headings": [
+        "1.RK3568 核心板MIPI DSI 接口引脚",
+        "1.信号电平",
+        "2.通道状态",
+        "3.三种工作模式",
+        "1.PHY 层（物理层）",
+        "2.通道管理层",
+        "3.协议层",
+        "4.短包（short packet）格式",
+        "5.长包（short packet）格式",
+        "6.包传输方式",
+        "7.包传输策略",
+        "8.应用层",
+        "1.视频模式",
+        "2.命令模式",
+        "1.诞生背景"
+      ]
+    },
+    {
+      "chapter": "ch265.js",
+      "headings": [
+        "1.诞生背景",
+        "2.HDMI 的发展历程",
+        "3.HDMI 接口引脚定义"
+      ]
+    }
+  ]
+}
