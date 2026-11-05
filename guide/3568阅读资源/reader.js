@@ -57,7 +57,7 @@
     let resolve,reject;
     const promise=new Promise((a,b)=>{resolve=a;reject=b;});
     pending.set(id,{promise,resolve,reject});
-    const script=document.createElement('script');script.src='3568阅读资源/chapters/'+id+'.js';
+    const script=document.createElement('script');script.src='3568阅读资源/chapters/'+id+'.js?v=20261105-code-blocks-v5';
     script.onload=()=>{script.remove();if(pending.has(id)){pending.delete(id);reject(new Error('章节资源未能正常读取'));}};
     script.onerror=()=>{script.remove();pending.delete(id);reject(new Error('章节资源加载失败，请检查“3568阅读资源”文件夹是否完整。'));};
     document.head.append(script);

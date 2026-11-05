@@ -1,0 +1,353 @@
+{
+  "convertedPages": [
+    {
+      "page": 55,
+      "chapter": "ch004.js",
+      "start": 3,
+      "end": 13,
+      "rows": 11,
+      "paragraphs": 16
+    },
+    {
+      "page": 57,
+      "chapter": "ch004.js",
+      "start": 23,
+      "end": 31,
+      "rows": 9,
+      "paragraphs": 9
+    },
+    {
+      "page": 60,
+      "chapter": "ch005.js",
+      "start": 13,
+      "end": 27,
+      "rows": 15,
+      "paragraphs": 12
+    },
+    {
+      "page": 86,
+      "chapter": "ch008.js",
+      "start": 15,
+      "end": 19,
+      "rows": 5,
+      "paragraphs": 8
+    },
+    {
+      "page": 89,
+      "chapter": "ch008.js",
+      "start": 11,
+      "end": 15,
+      "rows": 5,
+      "paragraphs": 5
+    },
+    {
+      "page": 91,
+      "chapter": "ch008.js",
+      "start": 24,
+      "end": 46,
+      "rows": 23,
+      "paragraphs": 20
+    },
+    {
+      "page": 91,
+      "chapter": "ch009.js",
+      "start": 24,
+      "end": 46,
+      "rows": 23,
+      "paragraphs": 20
+    },
+    {
+      "page": 92,
+      "chapter": "ch009.js",
+      "start": 5,
+      "end": 18,
+      "rows": 14,
+      "paragraphs": 11
+    },
+    {
+      "page": 93,
+      "chapter": "ch009.js",
+      "start": 1,
+      "end": 19,
+      "rows": 19,
+      "paragraphs": 33
+    },
+    {
+      "page": 99,
+      "chapter": "ch011.js",
+      "start": 13,
+      "end": 56,
+      "rows": 44,
+      "paragraphs": 39
+    },
+    {
+      "page": 106,
+      "chapter": "ch012.js",
+      "start": 41,
+      "end": 43,
+      "rows": 3,
+      "paragraphs": 4
+    },
+    {
+      "page": 113,
+      "chapter": "ch014.js",
+      "start": 5,
+      "end": 15,
+      "rows": 11,
+      "paragraphs": 8
+    },
+    {
+      "page": 113,
+      "chapter": "ch015.js",
+      "start": 5,
+      "end": 15,
+      "rows": 11,
+      "paragraphs": 8
+    },
+    {
+      "page": 118,
+      "chapter": "ch016.js",
+      "start": 14,
+      "end": 50,
+      "rows": 37,
+      "paragraphs": 36
+    },
+    {
+      "page": 123,
+      "chapter": "ch017.js",
+      "start": 662,
+      "end": 663,
+      "rows": 2,
+      "paragraphs": 2
+    },
+    {
+      "page": 125,
+      "chapter": "ch017.js",
+      "start": 35,
+      "end": 48,
+      "rows": 14,
+      "paragraphs": 13
+    },
+    {
+      "page": 130,
+      "chapter": "ch018.js",
+      "start": 18,
+      "end": 54,
+      "rows": 37,
+      "paragraphs": 37
+    },
+    {
+      "page": 135,
+      "chapter": "ch019.js",
+      "start": 11,
+      "end": 54,
+      "rows": 44,
+      "paragraphs": 40
+    },
+    {
+      "page": 136,
+      "chapter": "ch019.js",
+      "start": 55,
+      "end": 81,
+      "rows": 27,
+      "paragraphs": 25
+    },
+    {
+      "page": 137,
+      "chapter": "ch019.js",
+      "start": 10,
+      "end": 29,
+      "rows": 20,
+      "paragraphs": 20
+    },
+    {
+      "page": 142,
+      "chapter": "ch020.js",
+      "start": 23,
+      "end": 33,
+      "rows": 11,
+      "paragraphs": 13
+    },
+    {
+      "page": 143,
+      "chapter": "ch020.js",
+      "start": 23,
+      "end": 33,
+      "rows": 11,
+      "paragraphs": 11
+    },
+    {
+      "page": 149,
+      "chapter": "ch021.js",
+      "start": 30,
+      "end": 73,
+      "rows": 44,
+      "paragraphs": 41
+    },
+    {
+      "page": 150,
+      "chapter": "ch021.js",
+      "start": 74,
+      "end": 111,
+      "rows": 38,
+      "paragraphs": 37
+    },
+    {
+      "page": 152,
+      "chapter": "ch021.js",
+      "start": 4,
+      "end": 9,
+      "rows": 6,
+      "paragraphs": 6
+    },
+    {
+      "page": 155,
+      "chapter": "ch022.js",
+      "start": 30,
+      "end": 39,
+      "rows": 10,
+      "paragraphs": 12
+    },
+    {
+      "page": 157,
+      "chapter": "ch022.js",
+      "start": 34,
+      "end": 77,
+      "rows": 44,
+      "paragraphs": 41
+    },
+    {
+      "page": 158,
+      "chapter": "ch022.js",
+      "start": 78,
+      "end": 121,
+      "rows": 44,
+      "paragraphs": 40
+    },
+    {
+      "page": 164,
+      "chapter": "ch023.js",
+      "start": 44,
+      "end": 87,
+      "rows": 44,
+      "paragraphs": 38
+    },
+    {
+      "page": 165,
+      "chapter": "ch023.js",
+      "start": 88,
+      "end": 131,
+      "rows": 44,
+      "paragraphs": 35
+    },
+    {
+      "page": 166,
+      "chapter": "ch023.js",
+      "start": 132,
+      "end": 167,
+      "rows": 36,
+      "paragraphs": 38
+    },
+    {
+      "page": 173,
+      "chapter": "ch024.js",
+      "start": 25,
+      "end": 39,
+      "rows": 15,
+      "paragraphs": 54
+    },
+    {
+      "page": 175,
+      "chapter": "ch024.js",
+      "start": 40,
+      "end": 83,
+      "rows": 44,
+      "paragraphs": 38
+    },
+    {
+      "page": 176,
+      "chapter": "ch024.js",
+      "start": 84,
+      "end": 127,
+      "rows": 44,
+      "paragraphs": 40
+    },
+    {
+      "page": 177,
+      "chapter": "ch024.js",
+      "start": 128,
+      "end": 145,
+      "rows": 18,
+      "paragraphs": 19
+    },
+    {
+      "page": 178,
+      "chapter": "ch024.js",
+      "start": 19,
+      "end": 20,
+      "rows": 2,
+      "paragraphs": 1
+    },
+    {
+      "page": 188,
+      "chapter": "ch025.js",
+      "start": 17,
+      "end": 60,
+      "rows": 44,
+      "paragraphs": 43
+    },
+    {
+      "page": 189,
+      "chapter": "ch025.js",
+      "start": 61,
+      "end": 104,
+      "rows": 44,
+      "paragraphs": 38
+    },
+    {
+      "page": 190,
+      "chapter": "ch025.js",
+      "start": 105,
+      "end": 148,
+      "rows": 44,
+      "paragraphs": 44
+    },
+    {
+      "page": 191,
+      "chapter": "ch025.js",
+      "start": 149,
+      "end": 164,
+      "rows": 16,
+      "paragraphs": 17
+    },
+    {
+      "page": 192,
+      "chapter": "ch025.js",
+      "start": 18,
+      "end": 23,
+      "rows": 6,
+      "paragraphs": 8
+    }
+  ],
+  "duplicates": {
+    "91": [
+      "ch008.js",
+      "ch009.js"
+    ],
+    "113": [
+      "ch014.js",
+      "ch015.js"
+    ]
+  },
+  "removedOnlyPages": [
+    {
+      "page": 867,
+      "chapter": "ch125.js",
+      "paragraphs": 6
+    }
+  ],
+  "errors": [],
+  "modifiedChapters": 19,
+  "convertedBlocks": 41,
+  "convertedRows": 983
+}
