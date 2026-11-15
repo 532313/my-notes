@@ -7,6 +7,14 @@ const writes=repo=>repo.calls.filter(c=>c.method!=='GET').length;
 async function open(a,path=id){a.w.location.hash='#note/'+encodeURIComponent(path);await wait(()=>!a.$('noteView').hidden&&a.$('noteTitle').value,'open note');}
 async function run(){
   {
+    const repo=new Repo();repo.seed();const titled=note('platform_match 函数',false),bodyOnly={...note('A 驱动',false),body:'## 匹配流程\n\n内核调用 platform_match 检查设备'};
+    repo.put(titled.id,serialize(titled));repo.put(bodyOnly.id,serialize(bodyOnly));const a=await app(repo,{route:'notebook/'+encodeURIComponent('测试')}),{$,w}=a;
+    $('sortSelect').value='title';write(a,'searchInput','platform_match');await wait(()=>$('searchResults').querySelector('a'),'search');const results=$('searchResults').querySelectorAll('a');
+    assert.ok(results[0].textContent.includes(titled.title));assert.match(results[1].textContent,/测试 · A 驱动 → 匹配流程/);assert.match(results[1].textContent,/检查设备/);
+    let restored;w.scrollTo=(_left,top)=>{restored=top;};w.scrollY=123;results[1].click();await wait(()=>!$('noteView').hidden,'read match');w.document.querySelector('.back-to-library').click();await wait(()=>!$('libraryView').hidden,'back to list');assert.equal(restored,123);assert.equal($('viewTitle').textContent,'测试');assert.equal($('searchInput').value,'platform_match');assert.equal($('sortSelect').value,'title');
+    write(a,'searchInput','不存在的关键词');await wait(()=>!$('emptyState').hidden,'empty search');assert.match($('emptyState').textContent,/搜索范围：测试/);$('clearSearch').click();assert.equal($('searchInput').value,'');assert.equal(w.document.activeElement,$('searchInput'));assert.equal($('viewTitle').textContent,'测试');checks.push('标题优先、正文摘要、返回原列表和范围内清除搜索');a.close();
+  }
+  {
     const repo=new Repo();repo.seed();const original='# 原文标题\n\n## 章节一\n\n正文中的检索目标。';repo.put(id,serialize({...note('正常笔记',false),body:original}));const a=await app(repo);await open(a);const {$,w}=a;
     assert.equal($('noteReadTitle').textContent,'正常笔记');assert.equal($('notePreview').firstElementChild.hidden,true);assert.equal($('noteBody').value,original);assert.match($('noteReadTitle').title,/原文标题/);checks.push('阅读页只显示一个标题，原始 Markdown 和标题信息保留');
     $('noteActions').open=true;$('readingTop').click();assert.equal($('noteActions').open,false);assert.equal(writes(repo),0);checks.push('更多菜单可执行原有操作，执行后自动收起');

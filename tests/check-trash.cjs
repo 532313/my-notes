@@ -47,6 +47,7 @@ async function app(repo,{drafts={},route='home'}={}){
   const errors=[],vc=new VirtualConsole();vc.on('jsdomError',error=>errors.push(error.message));
   const dom=new JSDOM(fs.readFileSync(path.join(root,'index.html'),'utf8'),{url:'https://532313.github.io/my-notes/#'+route,runScripts:'outside-only',pretendToBeVisual:true,virtualConsole:vc}),w=dom.window;
   w.fetch=repo.fetch.bind(repo);w.TextEncoder=TextEncoder;w.TextDecoder=TextDecoder;w.matchMedia=()=>({matches:false,addEventListener(){}});w.scrollTo=()=>{};w.HTMLElement.prototype.scrollIntoView=()=>{};
+  if(!w.crypto?.randomUUID)Object.defineProperty(w,'crypto',{value:crypto.webcrypto,configurable:true});
   w.HTMLDialogElement.prototype.showModal=function(){this.open=true;};w.HTMLDialogElement.prototype.close=function(){this.open=false;this.dispatchEvent(new w.Event('close'));};w.localStorage.setItem('notebook.drafts',JSON.stringify(drafts));
   for(const file of ['config.js','assets/vendor/marked.umd.js','assets/vendor/purify.min.js','guide/3568阅读资源/vendor/highlight.min.js','assets/github-store.js','assets/reading.js','assets/app.js'])w.eval(fs.readFileSync(path.join(root,file),'utf8'));
   const $=id=>w.document.getElementById(id);await wait(()=>$('cloudStatus').textContent==='已同步','initial sync');

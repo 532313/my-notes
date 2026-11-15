@@ -49,7 +49,9 @@
       catch(error){$('cloudStatus').textContent='同步失败';$('cloudStatus').dataset.state='error';$('cloudStatus').title=error.message;if(!documents.length){try{const response=await fetch('bootstrap.json');if(response.ok)documents=await response.json();}catch{}}if(!quiet)notify(error.message);$('listStatus').textContent=error.message+' 本机已有的笔记和草稿仍可查看。';if(!navigator.onLine)showOfflineState();}
       finally{refreshPromise=null;$('refreshButton').disabled=false;$('noteSync').disabled=false;updateNotebooks();if(!$('libraryView').hidden)renderList();}})();return refreshPromise;
   }
+  let listOrigin=null;
   function renderList(){
+    if($('libraryView').hidden)return;
     const search=$('searchInput').value.trim().toLowerCase();let items=allNotes();
     const trashed=currentRoute==='trash';items=items.filter(d=>!!d.trashed===trashed);
     if(currentRoute==='favorites')items=items.filter(d=>d.favorite);
@@ -60,6 +62,9 @@
     if(currentRoute==='recent')items.sort((a,b)=>recent.indexOf(a.id)-recent.indexOf(b.id));
     else if($('sortSelect').value==='title')items.sort((a,b)=>a.title.localeCompare(b.title,'zh-CN'));
     else items.sort((a,b)=>(b.updated||'').localeCompare(a.updated||''));
+    if(search){const query=reader.fold(search);items.sort((first,second)=>Number(reader.fold(second.title||'').includes(query))-Number(reader.fold(first.title||'').includes(query)));}
+    const resume=currentRoute==='home'&&!search&&recent.map(id=>items.find(doc=>doc.id===id&&doc.type==='note'&&!doc.localDraft&&disk.read('reading.'+id,null)?.section)).find(Boolean);
+    $('continueNote').hidden=!resume;if(resume){$('continueNote').href=noteHash(resume.id);$('continueNote').textContent='继续阅读：'+resume.title;}
     const titles={home:'全部内容',recent:'最近访问',favorites:'收藏',drafts:'本机草稿',trash:'回收站'};
     $('viewTitle').textContent=titles[currentRoute]||currentRoute.slice(9);$('headerContext').textContent=$('viewTitle').textContent;
     $('viewSubtitle').textContent=trashed?'可恢复文档，或永久删除不再需要的内容。':currentRoute==='drafts'?'草稿只在当前设备保存，发布后才会同步。':'阅读资料，也留下自己的理解。';
@@ -69,7 +74,7 @@
     $('documentList').innerHTML=items.map(d=>{const href=d.type==='pdf'?pdfHash(d.id):noteHash(d.id),title=d.title||'未命名文档';const snippet=d.type==='pdf'?'PDF 参考资料':(d.body||'').replace(/[#*`>\[\]]/g,'').replace(/\s+/g,' ').slice(0,90)||'还没有正文';
       const actions=trashed?`<button class="restore" type="button" data-restore="${esc(d.id)}" aria-label="恢复文档：${esc(title)}">恢复</button><button class="doc-delete" type="button" data-permanent-delete="${esc(d.id)}" aria-label="永久删除文档：${esc(title)}">永久删除</button>`:`${d.type==='note'?`<button type="button" data-favorite="${esc(d.id)}" class="${d.favorite?'selected':''}" aria-label="${d.favorite?'取消收藏':'收藏'}">${d.favorite?'★':'☆'}</button>`:''}<button class="doc-delete" type="button" data-trash="${esc(d.id)}" aria-label="删除文档：${esc(title)}">删除</button>`;
       return `<div class="document-row"><input type="checkbox" data-select="${esc(d.id)}" aria-label="选择文档：${esc(title)}" ${selectedIds.has(d.id)?'checked':''}><a class="doc-main" href="${href}"><span class="file-icon ${d.type==='pdf'?'pdf-icon':'note-icon'}">${d.type==='pdf'?'PDF':'文'}</span><span class="doc-text"><strong>${esc(title)}${d.localDraft?'<span class="draft-badge">草稿</span>':''}</strong><small>${esc(snippet)}</small></span></a><span class="doc-notebook">${esc(d.notebook)}</span><span class="doc-date">${date(d.updated)}</span><span class="doc-actions">${actions}</span></div>`;}).join('');updateSelection();
-    $('emptyState').hidden=items.length!==0;$('emptyState').querySelector('h2').textContent=search?'没有找到匹配内容':trashed?'回收站是空的':'在这里，留下你的理解';$('emptyState').querySelector('p').textContent=search?'尝试更短的关键词，或在指南内搜索具体内容。':trashed?'移入回收站的文档会显示在这里。':'新建一篇笔记，或导入已有的 Markdown 文件。';$('emptyNewButton').hidden=!!search||trashed;$('documentList').parentElement.hidden=items.length===0;
+    $('emptyState').hidden=items.length!==0;$('emptyState').querySelector('h2').textContent=search?'没有找到匹配内容':trashed?'回收站是空的':'在这里，留下你的理解';$('emptyState').querySelector('p').textContent=search?'搜索范围：'+$('viewTitle').textContent+'。试试其他关键词，或清除搜索。':trashed?'移入回收站的文档会显示在这里。':'新建一篇笔记，或导入已有的 Markdown 文件。';$('clearSearch').hidden=!search;$('emptyNewButton').hidden=!!search||trashed;$('documentList').parentElement.hidden=items.length===0;
     markNavigation();reader.searchLibrary(items,search);if(deleting)setDocumentBusy(true);
   }
   function newNote(notebook='学习笔记',source=null,title='未命名笔记',body=''){
@@ -218,6 +223,10 @@
   async function route(){
     captureEditor();reader.leave();$('noteActions').open=false;const sequence=++routeSequence;
     const raw=location.hash.slice(1)||'home';const [path,query]=raw.split('?');const [kind,...rest]=path.split('/');let id;try{id=decodeURIComponent(rest.join('/'));}catch{location.hash='#home';return;}
+    const documentRoute=['note','pdf','guide'].includes(kind),fromLibrary=!$('libraryView').hidden&&routeSequence>1;
+    if(fromLibrary&&documentRoute){listOrigin={route:currentRoute,query:$('searchInput').value,sort:$('sortSelect').value,top:window.scrollY};}
+    const returnHash=listOrigin?.route.startsWith('notebook/')?'#notebook/'+encodeURIComponent(listOrigin.route.slice(9)):'#'+(listOrigin?.route||'home');
+    document.querySelector('.back-to-library').setAttribute('href',returnHash);
     sidebar(!matchMedia('(max-width:850px)').matches&&!['note','guide'].includes(kind));
     for(const section of ['libraryView','guideView','noteView','pdfView'])$(section).hidden=true;
     current=null;currentRoute=kind==='notebook'?'notebook/'+id:kind;
@@ -240,7 +249,9 @@
       try{const url=await store.pdfUrl(file);if(sequence!==routeSequence){URL.revokeObjectURL(url);return;}if(pdfObjectUrl)URL.revokeObjectURL(pdfObjectUrl);pdfObjectUrl=url;$('pdfFrame').src=url;$('pdfStatus').textContent='';}catch(error){$('pdfStatus').textContent=error.message;}return;
     }
     if(!['home','recent','favorites','drafts','trash','notebook'].includes(kind)){location.hash='#home';return;}
-    $('libraryView').hidden=false;renderList();markNavigation();window.scrollTo(0,0);
+    const returning=!fromLibrary&&listOrigin?.route===currentRoute;
+    if(returning){$('searchInput').value=listOrigin.query;$('sortSelect').value=listOrigin.sort;}
+    $('libraryView').hidden=false;renderList();markNavigation();window.scrollTo(0,returning?listOrigin.top:0);listOrigin=null;
   }
   function exportCurrent(){if(!current)return;const body=$('noteBody').value;const title=$('noteTitle').value.trim()||'未命名笔记';download(new Blob(['# '+title+'\n\n'+body],{type:'text/markdown;charset=utf-8'}),title.replace(/[\/\\:*?"<>|]/g,'_')+'.md');}
   function download(blob,name){const url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download=name;document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),10000);}
@@ -260,6 +271,7 @@
   $('backdrop').onclick=()=>sidebar(false);
   $('newNoteButton').onclick=$('emptyNewButton').onclick=()=>newNote(currentRoute.startsWith('notebook/')?currentRoute.slice(9):'学习笔记');
   $('refreshButton').onclick=()=>{captureEditor();$('listStatus').textContent='';refreshLibrary();};
+  $('clearSearch').onclick=()=>{$('searchInput').value='';renderList();$('searchInput').focus();};
   let librarySearchTimer;$('searchInput').oninput=()=>{clearTimeout(librarySearchTimer);librarySearchTimer=setTimeout(renderList,180);};$('noteSync').onclick=()=>refreshLibrary();$('sortSelect').onchange=renderList;
   $('newNotebookButton').onclick=()=>{$('notebookName').value='';$('notebookDialog').showModal();};
   $('notebookForm').onsubmit=e=>{e.preventDefault();const name=$('notebookName').value.trim();if(!name)return;$('notebookDialog').close();newNote(name);};

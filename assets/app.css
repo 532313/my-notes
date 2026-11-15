@@ -50,3 +50,16 @@ body{background:var(--surface)}
 @media(max-width:850px){
   :root{--sidebar:0px}.app-header{padding-inline:12px;gap:8px}.workspace-brand{min-width:0;gap:8px}.workspace-brand strong{font-size:12px}.workspace-icon{width:23px;height:23px;font-size:15px}.header-actions{gap:5px}.header-actions button,.header-actions select{font-size:10px;padding:5px 6px}.library-view{padding:28px 20px}.page-heading{gap:18px}.page-heading h1{font-size:25px}.guide-feature{padding:15px;gap:12px}.guide-feature strong{font-size:12px}.guide-feature p{font-size:10px}.feature-icon{width:29px;height:34px}.page-actions button{padding:7px 9px}.feature-action{font-size:0}.doc-text strong{font-size:12px}.doc-text small{font-size:10px}.table-heading,.document-row{padding-inline:0}.note-toolbar{padding:0 18px!important;min-height:48px!important;flex-wrap:nowrap!important}.note-toolbar-actions{flex-wrap:nowrap!important;gap:8px!important;margin-left:auto}.back-to-library{font-size:0;gap:0}.back-to-library .ui-icon{width:18px;height:18px}.note-toolbar .view-modes button{font-size:10px;padding:4px 8px}.note-toolbar #saveNoteButton{font-size:10px;padding:6px 8px}.action-menu>summary{width:28px;height:28px}.note-shell{padding:27px 22px 44px}.note-title,.note-read-title{font-size:26px;line-height:1.5;margin-bottom:11px}.note-meta{gap:6px;margin-bottom:18px;flex-wrap:nowrap}.note-meta input{width:105px;font-size:10px}.note-meta #saveStatus{font-size:9px;flex:1;min-width:0}.note-meta>button{flex:none}.reading-tools{top:var(--top);gap:14px;padding-block:7px;margin-bottom:24px}.reading-tools>button{padding:5px 0;font-size:11px}.note-find-panel>.note-find{width:330px;max-width:calc(100vw - 44px)}.markdown-body{font-size:15px;line-height:1.95}.note-view #downloadNoteButton{font-size:12px}.note-view #downloadNoteButton::after{content:none}.action-menu-panel #resumeReading,.action-menu-panel #readingTop{font-size:12px;padding:9px 10px}.public-note{font-size:10px}.search-actions{margin-right:0}
 }
+
+.library-view>.search-field{max-width:none;width:100%;padding:12px 14px;border:1px solid var(--line);margin-bottom:16px;background:var(--surface)}
+.library-view>.search-field:focus-within{outline:2px solid var(--blue)}
+.library-view>.search-field input{font-size:16px}
+.continue-note{display:block;margin:0 0 18px;color:var(--blue);overflow-wrap:anywhere}
+.note-view[data-mode=read] .note-shell{max-width:calc(72ch + 8vw)}
+.note-view[data-mode=read] .markdown-body{width:100%;max-width:72ch;margin-inline:auto;min-width:0;overflow-wrap:anywhere}
+.reading-grid>.editor-layout{min-width:0}
+@media(min-width:1100px){
+  .note-view[data-mode=read] .note-shell:has(.outline-panel.open){max-width:calc(72ch + 8vw + 280px)}
+  .reading-grid:has(.editor-layout[data-mode=read]):has(.outline-panel.open){grid-template-columns:minmax(0,1fr) 250px;gap:28px}
+  .reading-grid:has(.editor-layout[data-mode=read]) .outline-panel.open{position:sticky;top:calc(var(--top) + 54px);bottom:auto;width:auto;max-height:calc(100vh - var(--top) - 70px);box-shadow:none;z-index:1}
+}
