@@ -1,4 +1,4 @@
-<!-- notebook: {"version":1,"title":"GsyTrace 应用层总览 · 从一段录像读懂 M0–M7","notebook":"GsyTrace 应用层","created":"2026-11-22T12:00:00Z","updated":"2026-11-22T16:34:02Z","favorite":false,"trashed":false,"source":null} -->
+<!-- notebook: {"version":1,"title":"GsyTrace 应用层总览 · 从一段录像读懂 M0–M7","notebook":"GsyTrace 应用层","created":"2026-11-22T12:00:00Z","updated":"2026-11-22T17:37:23Z","favorite":false,"trashed":false,"source":null} -->
 
 # GsyTrace 应用层总览 · 从一段录像读懂 M0–M7
 
@@ -124,7 +124,7 @@ ACK 要证明会话和分片已经一起提交。回执丢了就重发，Hub 核
 
 ## 面试基础题 · Linux 与 C
 
-这 11 道题从 Linux 排障和 C 的拷贝开始，接着练多线程、函数调用和结构体传参，最后用 C++ 看继承和哈希表。Linux 命令可以在 WSL 终端练，排查板端进程时在 MobaXterm 对应板子的 SSH 终端执行。
+这 12 道题从 Linux 排障和 C 的拷贝开始，接着练多线程、函数调用、结构体传参、C++ 继承和哈希表，最后用 LVGL 小屏练怎样讲项目落地。Linux 命令可以在 WSL 终端练，排查板端进程时在 MobaXterm 对应板子的 SSH 终端执行。
 
 每道 C 或 C++ 题的完整示例各有一个 `main()`，一次复制一个来运行。C 示例存为 `demo.c`，C++ 示例存为 `demo.cpp`。在 WSL 终端进入源文件所在目录，按语言选对应的命令。`-pthread` 用于编译和链接 POSIX 线程示例。
 
@@ -688,6 +688,108 @@ int main()
 **追问。如果 `target - x` 超出 `int` 范围怎么办？** 先把操作数提升到 `std::int64_t` 再减。在这里的 32 位和 64 位 Linux 环境，`int` 是 32 位，两者的差能放进 64 位有符号整数。哈希表也用 64 位键。先按 `int` 做减法再把结果转成 64 位，会在转换前触发有符号溢出。
 
 **追问。为什么查找用 `find()`？** `find()` 查不到时返回 `end()`，它不会改动哈希表。`operator[]` 遇到不存在的键会插入一个默认值。例如下标的默认值是 `0`，这会让缺失的键和合法的 0 号下标混在一起。
+
+### 12. LVGL 怎样移植到 RV1106，接上屏幕和录制按钮？
+
+[![LVGL 移植图。WSL 把固定版本的图形库编进 RV1106 程序。帧缓冲负责显示，触摸事件交给 LVGL，录制命令由工作线程发给本机录制服务。](assets/gsytrace/lvgl-port.png)](assets/gsytrace/lvgl-port.png)
+
+**可以这样讲。** 我先在 WSL 把 LVGL（Light and Versatile Graphics Library，轻量图形库）和应用一起交叉编译，生成 RV1106 能执行的程序。上板后先接好显示，再把触摸坐标校成和画面一致。小屏主线程用 `lv_timer_handler()` 处理触摸、绘制和定时刷新。点「开始」或「结束」时，回调只把动作交给工作线程。工作线程走本机套接字和录制服务通信，界面根据服务返回的状态更新按钮。M6 回放接着复用这套显示和触摸接口。
+
+**在 WSL 把库编进应用。** `m2/ui/m2-ui.cmake` 用 `add_subdirectory()` 加入本地 LVGL 源码，并检查源码提交。固定的是 LVGL 9.2.3-dev 的 `933b2352bfec08b231e289546286aa0ef63d5ef8`，M2 和 M6 都使用这个提交。交叉编译器要准备 C、C++ 和汇编三种入口。LVGL 静态链接进 `m2-ui`，编好的程序随发布包交付。 [上游 LVGL 版本文件](https://github.com/lvgl/lvgl/blob/933b2352bfec08b231e289546286aa0ef63d5ef8/lv_version.h)
+
+在 WSL 的 GsyTrace 源码根目录执行。第一项用 M7 发布时的 Luckfox SDK（Software Development Kit，软件开发工具包）根目录，默认是 WSL 的 `$HOME/luckfox-pico`。它需要已经构建好 ARM 版媒体库和 Buildroot 的目标头文件、库目录（staging）。第二项用已检出指定提交、含 `CMakeLists.txt` 的 LVGL 源码根目录。路径和默认值一致时直接按回车。
+
+```bash
+(
+    set -e
+    read -r -p "Luckfox SDK [$HOME/luckfox-pico] > " SDK
+    SDK="${SDK:-$HOME/luckfox-pico}"
+    read -r -p "LVGL 源码 [$HOME/lv_port_linux/lvgl] > " LVGL_DIR
+    LVGL_DIR="${LVGL_DIR:-$HOME/lv_port_linux/lvgl}"
+    STAGING="$SDK/sysdrv/source/buildroot/buildroot-2023.02.6/output/staging"
+
+    if [ ! -r "$STAGING/usr/include/json-c/json.h" ] ||
+       [ ! -r "$STAGING/usr/lib/libjson-c.so" ] ||
+       [ ! -r "$SDK/output/out/media_out/lib/librockit.so" ]; then
+        echo '这个 SDK 缺少目标 json-c 或媒体库，请选已经完成构建的 Luckfox SDK。'
+        exit 1
+    fi
+
+    TC="$SDK/tools/linux/toolchain/arm-rockchip830-linux-uclibcgnueabihf/bin/arm-rockchip830-linux-uclibcgnueabihf"
+
+    git -C "$LVGL_DIR" rev-parse HEAD
+
+    cmake -S . -B build/m2-lvgl \
+      -DCMAKE_TOOLCHAIN_FILE="$PWD/cmake/rv1106-toolchain.cmake" \
+      -DCMAKE_C_COMPILER="$TC-gcc" \
+      -DCMAKE_CXX_COMPILER="$TC-g++" \
+      -DCMAKE_ASM_COMPILER="$TC-gcc" -DCMAKE_BUILD_TYPE=Release \
+      -DGSY_SDK_ROOT="$SDK" -DGSY_LVGL_ROOT="$LVGL_DIR" -DGSY_BUILD_M2_UI=ON
+
+    cmake --build build/m2-lvgl --parallel 4 --target m2-ui m2-recorder m2-ctl
+    file build/m2-lvgl/m2-ui
+    "$TC-readelf" -l build/m2-lvgl/m2-ui
+    wslpath -w "$PWD/build/m2-lvgl"
+)
+```
+
+先对照 Git 提交，再看 `file` 是否显示 ARM 32 位、`readelf` 是否显示解释器 `/lib/ld-uClibc.so.0`。最后一行给出 MobaXterm 文件传输时可进入的 Windows 路径。
+
+**上板先看显示，再看触摸。** `m2/ui/platform.c` 调用 `lv_init()`、`lv_linux_fbdev_create()` 和 `lv_linux_fbdev_set_file()`。帧缓冲设备 `/dev/fb0` 对应用暴露屏幕像素，代码检查显示是 **320×240、RGB565**。RGB565 每个像素用 16 位，红、绿、蓝各占 5、6、5 位。`m2/ui/lv_conf.h` 启用局部刷新，只给 LVGL 配一个 24 行的绘图缓冲，约 15 KiB。LVGL 的 fbdev 后端用 `ioctl()` 查询屏幕参数，再用 `mmap()` 映射 `/dev/fb0`。刷新时把绘好的区域逐行复制到帧缓冲，由内核屏幕驱动更新小屏。[LVGL 帧缓冲后端源码](https://github.com/lvgl/lvgl/blob/933b2352bfec08b231e289546286aa0ef63d5ef8/src/drivers/display/fb/lv_linux_fbdev.c#L155-L216)
+
+触摸走 Linux 的 evdev（event device，事件设备接口），默认打开 `/dev/input/event0`。项目用 `EVIOCGNAME` 查输入设备名，识别 `fts_ts` 后调用 `lv_evdev_set_swap_axes()` 交换 X/Y，再调用 `lv_evdev_set_calibration()` 调整轴的范围和方向，把 240×320 的触摸面板映射到 320×240 的画面，旋转角度是 270°。
+
+用 MobaXterm 连 RV1106。开发验证时，通过文件传输把三个产物放到同一试验目录。先确认原有录制服务已经退出，再在两个 SSH 标签页分别运行。小屏已被正式应用占用时，走下方正式版的检查流程。
+
+```sh
+# 试验目录。第一个 RV1106 SSH 标签页
+if ! command -v fuser >/dev/null 2>&1; then
+    echo '当前镜像缺少 fuser，请先用已安装版本的 rv-app status 核对小屏占用'
+elif fuser /dev/fb0; then
+    echo '小屏正在使用，请走正式版检查流程'
+else
+    chmod +x m2-ui m2-recorder m2-ctl && ./m2-recorder serve
+fi
+```
+
+```sh
+# 同一试验目录。第二个 RV1106 SSH 标签页
+./m2-ctl status
+./m2-ui
+```
+
+正式版用 M7 的 RV1106 应用包，通过 `install-release` 校验并安装，再由对应版本的 `use-release` 激活。录制界面由 `rv-app start` 拉起。已经切到回放页时，结束回放后可以用 `rv-app screen` 切回录制页。
+
+```sh
+/opt/gsytrace/current/rv-app status
+tail -n 30 /tmp/gsytrace-release/m2-ui.log
+# 点「开始」后、点「结束」后，分别再执行下行
+/opt/gsytrace/current/bin/m2-ctl status
+```
+
+`m2-ui` 日志应看到 `display=/dev/fb0 320x240 RGB565` 和实际触摸设备。小屏空闲时点「开始」，确认进入 `RECORDING` 后再点「结束」。在另一个终端用 `m2-ctl status` 对照状态。界面可能依次看到空闲、启动中、录制中、收尾中，再回空闲，轮询有时来不及看到很短的过渡状态。收尾后确认 `error` 为 `null`，把 `last_session_id` 的值填给下面的提示。打开这次会话的 `session.json`，确认 `state` 是 `complete`，再看目录里的 MP4、WAV 和分片清单。
+
+```sh
+printf '输入 last_session_id > '
+read -r SESSION_ID
+ls -lh "/mnt/sdcard/gsytrace-m2/$SESSION_ID/"
+cat "/mnt/sdcard/gsytrace-m2/$SESSION_ID/session.json"
+```
+
+**追问。为什么点按钮时界面还能动？** `m2/ui/main.c` 用 `lv_obj_add_event_cb()` 订阅 `LV_EVENT_CLICKED`，回调调用 `ui_recorder_submit()`。`m2/ui/recorder_client.c` 的工作线程负责向 `/tmp/gsytrace-m2/rec.sock` 发 JSON（JavaScript Object Notation）格式的 `start`、`stop`、`status`。主线程每 100 毫秒从快照刷新控件。空闲才允许开始，录制中才允许结束，请求等待、启动中、收尾中和未连接时按钮都禁用。
+
+**追问。为什么点四个角都容易命中左上角？** 当时输入层能收到事件，但 `fts_ts` 报出的轴上限约是 X=1600、Y=2176，板级标定范围对应 240×320。直接按前一组数字缩放，实际落点就被压到屏幕左上角。排查时先把设备身份、触点坐标和控件命中分开看。
+
+1. 在 RV1106 用下方命令找到 `Name="fts_ts"` 那一段，记下同行附近 `Handlers=` 里的 `eventN`。如果板上已经装了 `evtest`，依次点物理左上、右上、左下、右下，记录 `ABS_MT_POSITION_X/Y`（或者 `ABS_X/Y`）的值和增减方向。
+2. 对照 `platform.c`。设备名命中 `fts_ts` 时，先交换 X/Y，再用 `lv_evdev_set_calibration(touch, 0, 240, 320, 0)` 校准横屏坐标。用四角控件验证命中，再实点「开始」「结束」，核对状态和会话文件。开发试验可以给 `./m2-ui` 加 `--touch /dev/input/eventN` 选择实际节点。加 `--status-only` 能单独看状态，开始和结束按钮会禁用。
+
+```sh
+cat /proc/bus/input/devices
+# 有 evtest 时用实测的 eventN，以下以 event0 为例
+evtest /dev/input/event0
+```
+
+**追问。录制和回放怎样共用一个小屏？** `m6/CMakeLists.txt` 复用 M2 的 LVGL 构建配置，`m6/player.c` 调同一份 `ui_platform_init()`。播放器自己建画布和进度条，用 `lv_canvas_set_buffer()` 显示 RGB565 帧。发布脚本检查 `/dev/fb0` 占用，切到回放前先确认录制空闲，再退出录制界面并启动播放器。
 
 ## 源码和实测口径
 
