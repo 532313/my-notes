@@ -68,18 +68,35 @@ body{background:var(--surface)}
 .note-view[data-mode=read] .markdown-body{width:100%;min-width:0}
 .reading-grid>.editor-layout{min-width:0}
 .outline-header{z-index:1}
-.outline-series{padding:5px 0 12px;margin-bottom:12px;border-bottom:1px solid var(--line)}
-.outline-series h3,.outline-section-title{margin:0 0 6px;padding-inline:6px;font-size:11px;color:var(--subtle)}
-.outline-series[hidden]+.outline-section-title{display:none}
-.outline-series a{
-  display:block;padding:6px;border-radius:4px;font-size:12px;line-height:1.45;
-  color:var(--muted);overflow-wrap:anywhere
+.outline-series{padding:5px 0 12px}
+.outline-series h3{margin:0 0 6px;padding-inline:6px;font-size:11px;color:var(--subtle)}
+.outline-series summary{
+  padding:5px 6px;border-radius:4px;cursor:pointer;color:var(--muted);
+  overflow-wrap:anywhere
 }
-.outline-series a:hover{background:var(--bg);color:var(--ink)}
-.outline-series a[aria-current=page]{background:var(--blue-soft);color:var(--blue);font-weight:600}
-.outline-series a:focus-visible{outline:2px solid var(--blue);outline-offset:-2px}
+.outline-series summary::marker{font-size:.85em;color:var(--subtle)}
+.outline-series summary:hover,.outline-series-section a:hover{background:var(--bg);color:var(--ink)}
+.outline-series summary:has([aria-current=page]){background:var(--blue-soft);color:var(--blue);font-weight:600}
+.outline-series-title{color:inherit;font-size:12px;overflow-wrap:anywhere}
+.outline-series-title:hover{text-decoration:underline}
+.outline-series-section{margin-left:10px;border-left:1px solid var(--line)}
+.outline-series-section a{
+  flex:1;min-width:0;padding:6px;border-radius:4px;color:var(--muted);font-size:12px;
+  line-height:1.45;overflow-wrap:anywhere
+}
+.outline-series-section a[aria-current=location]{background:var(--blue-soft);color:var(--blue);font-weight:600}
+.outline-series-section button[data-share]{min-height:30px;min-width:26px;padding:3px}
+.outline-series :is(summary,a):focus-visible{outline:2px solid var(--blue);outline-offset:-2px}
+.markdown-body a[href^="assets/gsytrace/"]{
+  display:grid;place-items:center;width:min(100%,640px);margin-inline:auto;
+  height:min(55vh,520px);height:min(55svh,520px);
+}
+.markdown-body a[href^="assets/gsytrace/"] > img{
+  display:block;max-width:100%;max-height:min(55vh,520px);max-height:min(55svh,520px);
+  cursor:zoom-in;
+}
 @media(max-width:1099px){
-  .outline-series a{padding-block:10px}
+  .outline-series summary,.outline-series-section a{padding-block:9px}
 }
 @media(min-width:1100px){
   .note-view[data-mode=read] .note-shell:has(.outline-panel.open){

@@ -9,7 +9,8 @@ async function checkGsyTrace(page,width){
   const phase=id=>'#note/notes%2Fgsytrace-'+id+'.md';
   const stages=Array.from({length:8},(_,n)=>phase('m'+n));
   const toggle=page.locator('#outlineToggle'),directory=page.locator('#outlinePanel');
-  const index=page.locator('#outlineSeries a');
+  const index=page.locator('#outlineSeries .outline-series-title');
+  const expanded=page.locator('#outlineSeries details[open]');
   const title=page.locator('#noteReadTitle');
   const body=page.locator('.markdown-body');
   const desktop=width>=1100;
@@ -21,17 +22,20 @@ async function checkGsyTrace(page,width){
   assert.equal(await page.locator('#outlineSeries a[aria-current="page"]').getAttribute('href'),phase('overview'));
   const openWidth=(await body.boundingBox()).width;
   assert.ok(openWidth>=(desktop?1020:350));
-  await index.filter({hasText:'M3 ·'}).click();
+  assert.deepEqual(await expanded.evaluateAll(items=>items.map(item=>item.dataset.noteId)),['notes/gsytrace-overview.md']);
+  const branch=page.locator('#outlineSeries details[data-note-id="notes/gsytrace-m3.md"]');
+  await branch.locator('summary').press('Enter');
+  const chapter=branch.locator('a[data-section]').filter({hasText:'第二段'}).first();
+  const section=await chapter.getAttribute('data-section');
+  await chapter.click();
   await title.getByText('GsyTrace M3',{exact:false}).waitFor();
   assert.equal(await directory.isVisible(),desktop);
   if(!desktop)await toggle.click();
   assert.equal(await page.locator('#outlineSeries a[aria-current="page"]').getAttribute('href'),phase('m3'));
   assert.equal(await index.count(),9);
-  const chapter=page.locator('#outlineList [data-jump]').filter({hasText:'第二段'}).first();
-  const section=await chapter.getAttribute('data-jump');
-  await chapter.click();
-  await page.waitForFunction(id=>document.querySelector('#outlineList [aria-current="location"]')?.dataset.jump===id,section);
-  assert.equal(await directory.isVisible(),desktop);
+  assert.deepEqual(await expanded.evaluateAll(items=>items.map(item=>item.dataset.noteId)),['notes/gsytrace-m3.md']);
+  await page.waitForFunction(id=>document.querySelector('#outlineSeries [aria-current="location"]')?.dataset.section===id,section);
+  assert.equal(new URL(page.url()).hash,phase('m3')+'?section='+section);
   assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true);
   if(desktop){
     await toggle.click();
