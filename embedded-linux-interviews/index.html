@@ -176,6 +176,17 @@
 <p><strong>答 4｜偏航与走准 1 米</strong> 假设是差速小车，我会先用 wheel encoder（轮式编码器）和轮径估位移，用左右轮差估朝向，再用 feedback control（反馈控制）纠偏和减速。先确认转速、扭矩、减速比和编码器分辨率，量实际距离，排查打滑和轮径误差；偏航时先找安全回归点，不方便直接回去就重新规划。</p>
 <p><strong>答 5｜课题、方向和到岗</strong> 排名、课题和可到岗时间按真实情况答。讲方向时给一个具体理由，比如更想把设备从启动、驱动绑定到应用拿到数据跑通。团队题讲清自己负责哪段、跟谁交接，别泛称全栈负责。</p>
 <p><strong>自练追问：</strong> 已进内核但触摸没事件，先分清有没有设备枚举和驱动绑定，再查 I²C 通信、中断计数和用户态输入事件。技术参考：<a href="https://docs.u-boot.org/en/latest/develop/spl.html" rel="noopener noreferrer">U-Boot 启动阶段</a> · <a href="https://docs.kernel.org/kbuild/kconfig.html" rel="noopener noreferrer">Linux Kconfig</a> · <a href="https://github.com/torvalds/linux/blob/v6.6/fs/char_dev.c" rel="noopener noreferrer">Linux 字符设备源码</a> · <a href="https://docs.kernel.org/input/input-programming.html" rel="noopener noreferrer">Linux 输入子系统</a></p></article>
+<article id="insta360-lvgl" data-topic="项目与通信" data-kind="实习"><div class="eyebrow">实习面经 · 项目与通信</div><h3>影石嵌入式实习两轮：LVGL 移植、项目分工与 PR</h3>
+<p><strong>一面题目要点：</strong> 先聊毕业进度、实习时长和到岗；再问 C/C++ 熟悉程度、数组和指针、typedef 和宏、结构体和联合体、野指针和悬空指针、内存各段及堆栈、编译过程；Linux 进程与线程、IPC（进程间通信）、调度；H.264、两个项目的职责、LVGL 是否移植过和用在哪、Bootloader 体积优化及平台、低功耗和 Linux 子系统选型。</p>
+<p><strong>二面题目要点：</strong> 追问产品体验、奖项和经历、最难项目与具体分工、UI 是否自己搭、画过哪些控件、Qt 与其他 GUI 框架；问 LVGL 和另一项开源 PR（拉取请求）的改动、代码量和个人贡献。技术题还包括国产 OS 与 Linux、FreeRTOS 与 µC/OS、TCP 与 RS-422 的分工、RS-232/422/485、H.264/H.265、I²C/SPI/UART/ADC/DMA/CAN、Qt 多线程、内存泄漏及指针、C/C++ 使用场景；最后问实习时长、到岗、地点意愿和转正。</p>
+<p><strong>答 1｜有没有移植过 LVGL？：</strong> 先分清 Application Integration（应用集成）与 Porting（移植）。假如只在现成的显示后端上做过界面，就先讲实际改了哪一层，而不是说从零写了驱动。如果让我从头接，先跑通 Tick（时基）和 lv_timer_handler()；再注册 Display（显示设备），配好分辨率、像素格式、Stride（行跨度）和 Draw Buffer（绘制缓冲区）。先用纯色和色条查黑屏、花屏、颜色顺序，再接触摸并验证坐标。异步 DMA（直接内存访问）还在读缓冲时不能提前调用 lv_display_flush_ready()；它表示缓冲可以再用，不等于屏幕已经显示。这里用的是 LVGL 9 接口。</p>
+<p><strong>答 2｜项目和 PR 怎么讲？：</strong> 用“我负责哪一层 → 遇到什么问题 → 我改了哪里 → 怎么验证”讲，别先报代码行数。例：回放进度条可以在拖动时只改 UI，松手才提交 Seek（跳转），避免给后台连续发定位请求。后台线程把结果通过 Queue（队列）交回 UI 线程更新控件；Qt 可以用 Queued Connection（队列连接）让槽在接收对象的线程执行。真有上游 PR 再讲对应 diff、复现和验证；没有就讲自己的应用改动。</p>
+<p><strong>答 3｜C 内存、指针和编译怎么答？：</strong> 数组是连续元素，指针是地址值；数组表达式通常会转换为首元素指针，但对实际数组用 sizeof 仍是整个数组大小。typedef 是类型别名，宏先做预处理文本替换；struct 成员各自有存储并可能有填充，union 共享存储。Wild Pointer（野指针）通常指未初始化等无效指针，Dangling Pointer（悬空指针）指目标寿命已结束。把一个指针置空不能修复别名，先讲 Ownership（所有权），C++ 可用 RAII。常见布局说清代码、只读数据、已初始化数据和 BSS，再区分调用栈与动态分配；别背固定地址。编译按预处理、编译、汇编、链接展开。</p>
+<p><strong>答 4｜Linux、RTOS、通信怎么答？：</strong> 进程一般有独立地址空间，同进程线程共享地址空间但有自己的栈和调度状态。管道适合字节流，共享内存还要同步，Socket（套接字）可用于进程间或跨机器通信。Linux 调度按 runnable（可运行）状态和调度策略解释，别把 Cortex-M 的 PendSV 当 Linux 通用机制。比较 RTOS（实时操作系统）时先说具体版本，再比优先级、抢占、同步和资源开销。TCP 是可靠字节流协议，不与串口电气规范在同一层；RS-232 单端，RS-422/485 差分，选型看驱动器和接收节点拓扑、双工、距离与终端。</p>
+<p><strong>答 5｜音视频及外设怎么答？：</strong> H.264 可从帧内／帧间预测讲到 NAL Unit（网络抽象层单元）与 SPS/PPS（序列／图像参数集），再区分编码和封装。H.265 换了编码结构，通常在相似画质时可降低码率，实际取舍还看端侧硬件和编码设置。外设按场景答：I²C 用于寻址和寄存器配置，SPI 是同步串行，UART 是异步串行，ADC 把模拟量变成数字量，CAN 涉及仲裁和错误处理，DMA 是数据搬运机制而不是通信协议。挑实际用过的一项说明怎么验证。</p>
+<p><strong>答 6｜Bootloader 体积和低功耗怎么答？：</strong> 先用 Linker Map（链接映射）和段大小查占用，再考虑去掉未用功能、日志和库，按实际存储镜像量化，回归启动及回退。低功耗先量静态电流和唤醒周期，再拆不必要的外设时钟、唤醒源、唤醒耗时和漏电路径；用相同工况比平均电流和响应时间。没做过就说是定位方案，不把别人的 MCU 优化说成自己的。</p>
+<p><strong>自练追问｜显示卡顿怎么定位？：</strong> 作者说准备的 LVGL 渲染管线没有被问到。自己练时可区分 Frame Produced（帧已生成）、Flush Done（缓冲可复用）和 Visible Output（屏幕实际可见）。用同一段输入分别记录各阶段的间隔；看到刷新回调次数变多，不等于 LCD 出现更多不同画面。</p>
+<p><strong>出处与技术参考：</strong> <a href="https://www.nowcoder.com/discuss/846109305953587200" rel="noopener noreferrer">牛客一面原帖</a> · <a href="https://www.nowcoder.com/feed/main/detail/9bbb82fd0f7344b68ae531bdab232338" rel="noopener noreferrer">牛客二面原帖</a> · <a href="https://lvgl.io/docs/open/9.3/details/main-modules/display/setup" rel="noopener noreferrer">LVGL 9.3 显示与缓冲</a> · <a href="https://lvgl.io/docs/open/9.3/details/integration/adding-lvgl-to-your-project/threading.html" rel="noopener noreferrer">LVGL 线程约束</a> · <a href="https://lvgl.io/docs/open/9.3/details/integration/adding-lvgl-to-your-project/timer_handler.html" rel="noopener noreferrer">LVGL 定时器</a> · <a href="https://gcc.gnu.org/onlinedocs/gcc/Overall-Options.html" rel="noopener noreferrer">GCC 编译阶段</a> · <a href="https://docs.kernel.org/scheduler/index.html" rel="noopener noreferrer">Linux Scheduler</a> · <a href="https://www.itu.int/rec/T-REC-H.264" rel="noopener noreferrer">ITU-T H.264</a> · <a href="https://doc.qt.io/qt-6/threads-qobject.html" rel="noopener noreferrer">Qt 对象与线程</a> · <a href="https://www.itu.int/rec/T-REC-H.265" rel="noopener noreferrer">ITU-T H.265</a></p></article>
 <!-- ANSWER_ARTICLES_END -->
 </div><p>技术核对：<a href="https://docs.kernel.org/6.17/i2c/writing-clients.html" rel="noopener noreferrer">Linux I²C 驱动</a> · <a href="https://docs.kernel.org/i2c/fault-codes.html" rel="noopener noreferrer">I²C 错误码</a> · <a href="https://docs.kernel.org/driver-api/gpio/consumer.html" rel="noopener noreferrer">GPIO 描述符接口</a> · <a href="https://docs.kernel.org/locking/locktypes.html" rel="noopener noreferrer">内核锁规则</a></p></section>
 <section id="sources"><h2>原帖索引</h2><h3>嵌入式实习</h3><ol class="sources">
@@ -192,6 +203,7 @@
 <li><p><strong>华为｜嵌入式软件暑期实习｜2026-05-21（原帖编辑日期）；一面约 1 小时，主管面约 20 分钟；工作城市未注明。</strong> 技术面沿候选人的 Linux 项目追问双分区 OTA、单分区恢复策略、内核裁剪与测试、framebuffer 多缓冲和线程同步。最值得练的是按时间顺序讲明：谁能写这个缓冲区、何时能显示、怎样确认旧缓冲可以复用。 <a href="https://www.nowcoder.com/feed/main/detail/28927e961e6247f7bac86bca49a318e5">牛客原帖</a></p></li>
 <li><p><strong>字节跳动多媒体暑期实习，一面约 1 小时；原帖页面显示 3 月 26 日发布，面试日期、工作城市和目标操作系统未注明。属于音视频相邻方向，不是 BSP 岗。</strong> 重点是多线程、帧率控制、SPS/PPS 与 IDR 起播、FFmpeg 编解码。 <a href="https://www.nowcoder.com/feed/main/detail/ed25429178194dea91b8365f49d00e9a" rel="noopener noreferrer">牛客原帖</a></p><a class="detail" href="#bytedance-media-idr">查看题目与参考答案 →</a></li>
 <li><p><strong>海康 BSP 实习｜候选人记载 4 月 29 日面试，2025-08-04 发帖；轮次和岗位城市未注明。只收录原帖中的海康段。候选人反问得知方向偏 Android BSP，不把它写成相机专岗。</strong> <a href="https://www.nowcoder.com/feed/main/detail/b32a2f5f132e4eb1978cc11943d0d958" rel="noopener noreferrer">牛客原帖</a></p><a class="detail" href="#hikvision-bsp-bringup">查看题目与参考答案 →</a></li>
+<li><p><strong>影石 Insta360｜嵌入式实习｜GUI 与通信。</strong> 同一候选人的两轮复盘，一面约 30 分钟、无手写题；二面约 35 分钟。原帖页面分别显示 1 月 28 日、2 月 2 日，年份和岗位城市不作确认。候选人反问得知该组偏 GUI（图形用户界面）和通信，用的是商用闭源框架，不代表团队采用 LVGL。 <a href="https://www.nowcoder.com/discuss/846109305953587200" rel="noopener noreferrer">牛客一面原帖</a> · <a href="https://www.nowcoder.com/feed/main/detail/9bbb82fd0f7344b68ae531bdab232338" rel="noopener noreferrer">牛客二面原帖</a>。</p><a class="detail" href="#insta360-lvgl">查看题目与参考答案 →</a></li>
 <!-- INTERNSHIP_SOURCES_END -->
 </ol><h3>校招、历史面经和邻近岗位</h3><ol class="sources">
 <!-- REFERENCE_SOURCES_START -->
@@ -207,6 +219,7 @@
 <p class="bullet"><strong>演练一次故障定位。</strong> 选 I²C 无应答、串口丢帧或传感器时间戳不同步之一，讲清复现、观察、排除、改动、回归五步，再补一个你能讲清取舍的同步机制。</p></section>
 <section id="updates"><h2>更新记录</h2>
 <!-- UPDATE_LOG_START -->
+<p>2026-11-22：新增同一候选人的影石嵌入式实习一、二面，补上 LVGL 移植、GUI 分工、开源 PR 和相关基础题的口语答法。</p>
 <p>2026-11-21：补入海康 BSP 实习原帖，整理 U-Boot 启动链、内核裁剪、字符设备与项目分工的口语参考答法。</p>
 <p>2026-11-20：新增字节多媒体暑期实习一面，整理帧率控制、线程池与资源生命周期、IDR 起播和 FFmpeg 编解码练习。</p>
 <p>2026-11-19：新增华为嵌软暑期实习原帖，补入 OTA 回退、内核裁剪、framebuffer 多缓冲与手写题的参考答法。</p>
@@ -241,6 +254,7 @@
 <a href="#huawei-ota-framebuffer">华为嵌软暑期实习：OTA 回退与 framebuffer 多缓冲</a>
 <a href="#bytedance-media-idr">字节多媒体暑期实习一面：帧率、IDR 与 FFmpeg</a>
 <a href="#hikvision-bsp-bringup">海康 BSP 实习：启动链、内核裁剪与字符设备</a>
+<a href="#insta360-lvgl">影石嵌入式实习两轮：LVGL 移植、项目分工与 PR</a>
 <!-- ENTRY_LINKS_END -->
 </nav>
         <nav class="section-links" aria-label="其他章节"><a href="#sources">原帖索引</a><a href="#practice">练习清单</a><a href="#updates">更新记录</a></nav>
