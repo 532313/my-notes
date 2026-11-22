@@ -55,11 +55,39 @@ body{background:var(--surface)}
 .library-view>.search-field:focus-within{outline:2px solid var(--blue)}
 .library-view>.search-field input{font-size:16px}
 .continue-note{display:block;margin:0 0 18px;color:var(--blue);overflow-wrap:anywhere}
-.note-view[data-mode=read] .note-shell{max-width:calc(72ch + 8vw)}
-.note-view[data-mode=read] .markdown-body{width:100%;max-width:72ch;margin-inline:auto;min-width:0;overflow-wrap:anywhere}
+.note-view[data-mode=read] {
+  --reading-width:1120px;
+  --reading-gutter:clamp(16px,2.5vw,40px);
+  --outline-width:250px;
+  --outline-gap:28px;
+}
+.note-view[data-mode=read] .note-shell {
+  max-width:calc(var(--reading-width) + 2 * var(--reading-gutter));
+  padding-inline:var(--reading-gutter);
+}
+.note-view[data-mode=read] .markdown-body{width:100%;min-width:0}
 .reading-grid>.editor-layout{min-width:0}
+.outline-header{z-index:1}
+.outline-series{padding:5px 0 12px;margin-bottom:12px;border-bottom:1px solid var(--line)}
+.outline-series h3,.outline-section-title{margin:0 0 6px;padding-inline:6px;font-size:11px;color:var(--subtle)}
+.outline-series[hidden]+.outline-section-title{display:none}
+.outline-series a{
+  display:block;padding:6px;border-radius:4px;font-size:12px;line-height:1.45;
+  color:var(--muted);overflow-wrap:anywhere
+}
+.outline-series a:hover{background:var(--bg);color:var(--ink)}
+.outline-series a[aria-current=page]{background:var(--blue-soft);color:var(--blue);font-weight:600}
+.outline-series a:focus-visible{outline:2px solid var(--blue);outline-offset:-2px}
+@media(max-width:1099px){
+  .outline-series a{padding-block:10px}
+}
 @media(min-width:1100px){
-  .note-view[data-mode=read] .note-shell:has(.outline-panel.open){max-width:calc(72ch + 8vw + 280px)}
-  .reading-grid:has(.editor-layout[data-mode=read]):has(.outline-panel.open){grid-template-columns:minmax(0,1fr) 250px;gap:28px}
+  .note-view[data-mode=read] .note-shell:has(.outline-panel.open){
+    max-width:calc(var(--reading-width) + 2 * var(--reading-gutter) + var(--outline-width) + var(--outline-gap));
+  }
+  .note-view[data-mode=read] .reading-grid:has(.outline-panel.open){
+    grid-template-columns:minmax(0,1fr) var(--outline-width);
+    gap:var(--outline-gap);
+  }
   .reading-grid:has(.editor-layout[data-mode=read]) .outline-panel.open{position:sticky;top:calc(var(--top) + 54px);bottom:auto;width:auto;max-height:calc(100vh - var(--top) - 70px);box-shadow:none;z-index:1}
 }
