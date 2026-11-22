@@ -47,7 +47,7 @@
       }
       if(!quiet)notify('已读取 GitHub 最新内容');}
       catch(error){$('cloudStatus').textContent='同步失败';$('cloudStatus').dataset.state='error';$('cloudStatus').title=error.message;if(!documents.length){try{const response=await fetch('bootstrap.json');if(response.ok)documents=await response.json();}catch{}}if(!quiet)notify(error.message);$('listStatus').textContent=error.message+' 本机已有的笔记和草稿仍可查看。';if(!navigator.onLine)showOfflineState();}
-      finally{refreshPromise=null;$('refreshButton').disabled=false;$('noteSync').disabled=false;updateNotebooks();if(!$('libraryView').hidden)renderList();}})();return refreshPromise;
+      finally{refreshPromise=null;$('refreshButton').disabled=false;$('noteSync').disabled=false;updateNotebooks();if(current?.type==='note')reader.updateSeries(allNotes());if(!$('libraryView').hidden)renderList();}})();return refreshPromise;
   }
   let listOrigin=null;
   function renderList(){
@@ -106,7 +106,7 @@
     const html=marked.parse($('noteBody').value,{gfm:true,breaks:false});$('notePreview').innerHTML=DOMPurify.sanitize(html,{FORBID_TAGS:['iframe','form','style','script','object','embed'],FORBID_ATTR:['style']});
     prepareNoteLinks();prepareCodeBlocks();
     window.NoteHeatmap?.mount($('notePreview'));
-    if(current?.type==='note')reader.mount(current);
+    if(current?.type==='note')reader.mount(current,allNotes());
     if(!$('noteBody').value.trim())$('notePreview').innerHTML='<p style="color:var(--subtle)">还没有正文，切换到编辑开始记录。</p>';
   }
   function showNote(note){
