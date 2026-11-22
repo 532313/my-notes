@@ -1,35 +1,100 @@
 <!doctype html>
 <html lang="zh-CN">
 <head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="description" content="嵌入式 Linux 实习面经：驱动、BSP、音视频、并发与操作系统，附原帖题目与参考答案。"><meta name="color-scheme" content="light dark"><title>嵌入式 Linux 实习面经｜我的笔记</title>
-<link rel="stylesheet" href="interviews.css"><script defer src="interviews.js"></script></head>
-<body><a class="skip" href="#main">跳到正文</a>
-<header class="top"><div class="shell"><a class="home" href="../">← 我的笔记</a><span>学习资料 / 面试备考</span></div></header>
-<main id="main" class="shell">
-<section class="lead" aria-labelledby="title"><div class="eyebrow">嵌入式系统 · 实习备考</div><h1 id="title">嵌入式 Linux<br class="mobile-break"> 实习面经</h1><p>面向嵌入式 Linux 实习与校招备考，覆盖驱动和 BSP、音视频、并发与操作系统、车载通信。面经为候选人复盘，不代表同团队会问同一套题。</p><div class="lead-actions"><a class="primary" href="#questions">看面试题与答案</a><a href="#sources">查看原帖索引</a></div></section>
-<div class="columns"><aside class="sidebar"><nav aria-label="页面目录"><div class="eyebrow">页面目录</div><a href="#questions">题目与参考答案</a><a href="#sources">原帖索引</a><a href="#practice">练习清单</a><a href="#updates">更新记录</a></nav></aside>
-<div class="content">
+<script>
+  (() => {
+    const prefersDark = matchMedia('(prefers-color-scheme: dark)');
+    const syncTheme = () => {
+      let mode = 'system';
+      try { mode = JSON.parse(localStorage.getItem('rk3568.themeMode')) || 'system'; } catch {}
+      document.documentElement.classList.toggle('dark', mode === 'dark' || (mode !== 'light' && prefersDark.matches));
+    };
+    syncTheme();
+    prefersDark.addEventListener('change', syncTheme);
+    window.addEventListener('storage', syncTheme);
+  })();
+  </script>
+  <link rel="stylesheet" href="../assets/app.css?v=20261105-simple">
+  <style>
+
+  .interviews-reader{background:var(--surface)}
+  .interviews-reader #main{margin-left:0;padding-top:var(--top)}
+  .interviews-reader #main>.document-toolbar{height:48px}
+  .interviews-reader .note-shell{padding-top:30px}
+  .interviews-reader .intro{max-width:72ch;color:var(--muted);margin:0 0 20px;font-size:14px;line-height:1.8}
+  .interviews-reader .back-to-library{font-size:12px;gap:8px;min-height:36px}
+  .interviews-reader .reading-tools{gap:10px;flex-wrap:wrap}
+  .interviews-reader .reading-tools>button{padding:6px 10px;background:var(--bg);border:1px solid var(--line);border-radius:6px}
+  .interviews-reader .interview-filters{display:flex;flex:1;gap:8px;align-items:center;flex-wrap:wrap;min-width:0}
+  .interviews-reader .interview-filters input{min-width:0;flex:1 1 10rem}
+  .interviews-reader .interview-filters :is(input,select){font-size:12px;padding:6px 8px;height:34px}
+  .interviews-reader .interview-count{display:block;color:var(--muted);font-size:12px;margin:8px 0 14px}
+  .interviews-reader .reading-tools{margin-bottom:16px}
+  .interviews-reader .reading-grid>div{min-width:0}
+  .interviews-reader #article-outline .outline-header{z-index:1}
+  .interviews-reader .section-links a,.interviews-reader #entries a{display:block;padding:6px 8px;border-radius:5px;line-height:1.45;color:var(--ink);overflow-wrap:anywhere}
+  .interviews-reader #entries a{padding-left:17px}
+  .interviews-reader .section-links a:hover,.interviews-reader #entries a:hover{background:var(--blue-soft);color:var(--blue);text-decoration:none}
+  .interviews-reader .section-links a[href="#questions"]{font-weight:650}
+  .interviews-reader #entries{padding-bottom:8px}
+  .interviews-reader #questions h2{margin-top:0}
+  .interviews-reader .markdown-body section+section{border-top:1px solid var(--line);margin-top:36px}
+  .interviews-reader .markdown-body :is(section,article,footer)[id]{scroll-margin-top:153px}
+  .interviews-reader #articles>article{border-top:1px solid var(--line);margin-top:24px;padding-top:18px}
+  .interviews-reader #articles>article h3{margin:4px 0 10px}
+  .interviews-reader #articles>article:target h3{color:var(--blue)}
+  .interviews-reader #articles .eyebrow{letter-spacing:.05em;color:var(--muted);font-size:11px}
+  .interviews-reader .sources{padding-left:1.65em}
+  .interviews-reader .sources li+li{margin-top:12px}
+  .interviews-reader .sources li>p{margin:.45em 0}
+  .interviews-reader .page-end{border-top:1px solid var(--line);margin-top:30px;padding-top:16px;display:flex;justify-content:space-between;gap:12px;font-size:13px}
+  @media(max-width:600px){
+    .interviews-reader .note-shell{padding-inline:18px}
+    .interviews-reader .interview-filters{gap:6px}
+    .interviews-reader .interview-filters input{flex-basis:6rem}
+    .interviews-reader .interview-filters select{max-width:8rem}
+    .interviews-reader .markdown-body :is(section,article)[id]{scroll-margin-top:171px}
+  }
+  @media print{
+    .interviews-reader :is(.app-header,.document-toolbar,.reading-tools,.outline-panel,.page-end){display:none!important}
+    .interviews-reader #main{padding-top:0}
+    .interviews-reader .reading-grid{display:block}
+  }
+    .interviews-reader .interview-sr{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap;border:0}
+  </style>
+  <noscript><style>
+    .interviews-reader #article-outline{display:block;position:static;width:auto;box-shadow:none;border:1px solid var(--line);margin-bottom:24px}
+    .interviews-reader #article-outline .outline-header{position:static;padding-top:0}
+    .interviews-reader .reading-grid{display:flex;flex-direction:column}
+    .interviews-reader .reading-grid>div{width:100%}
+    .interviews-reader #article-outline{order:-1}
+    .interviews-reader .reading-tools{display:none}
+  </style></noscript>
+  <script defer src="interviews.js"></script>
+</head>
+<body class="interviews-reader">
+<a class="skip" href="#questions">跳到正文</a>
+<header class="app-header">
+  <div class="workspace-brand"><a href="../"><span class="workspace-icon" aria-hidden="true">N</span><strong>我的笔记</strong></a></div>
+  <span class="header-context">嵌入式 Linux 实习面经</span>
+</header>
+<main id="main" class="note-view" data-mode="read">
+  <div class="document-toolbar note-toolbar">
+    <a class="back-to-library" href="../#home"><span aria-hidden="true">←</span><span>内容列表</span></a>
+    <span>资料与指南 / 面试备考</span>
+  </div>
+  <div class="note-shell">
+    <h1 id="title" class="note-read-title">嵌入式 Linux 实习面经</h1>
+    <p class="intro">面向嵌入式 Linux 实习与校招备考，覆盖驱动和 BSP、音视频、并发与操作系统、车载通信。面经为候选人复盘，不代表同团队会问同一套题。</p>
+    <div class="reading-tools">
+      <button id="open-toc" type="button" aria-controls="article-outline" aria-expanded="false" hidden>☰ 目录</button>
+      <div class="interview-filters" id="filters" hidden><label class="interview-sr" for="search">搜索题目、公司或关键词</label><input id="search" type="search" placeholder="例如：设备树、WebSocket、xv6"><label class="interview-sr" for="topic">主题</label><select id="topic"><option value="">全部主题</option><option>系统设计</option><option>并发与基础</option><option>项目与通信</option><option>驱动与 BSP</option><option>RTOS 与传感器</option><option>音视频</option><option>操作系统</option></select></div>
+    </div>
+    <div class="reading-grid">
+      <div class="editor-layout" data-mode="read">
+        <div class="markdown-body" aria-label="面经正文">
+          <output id="count" class="interview-count" aria-live="polite"></output>
 <section id="questions" aria-labelledby="questions-title"><h2 id="questions-title">题目与参考答案</h2><p><strong>怎么用：</strong> 先读「原帖题目要点」，再用「参考答法」口述。题目是按原帖转述，不冒充现场原话；答案是备考参考，不是发帖者原答。原帖未公开具体问法的标为「自练追问」。</p>
-<div class="filters" id="filters" hidden><label for="search">搜索题目、公司或关键词</label><input id="search" type="search" placeholder="例如：设备树、WebSocket、xv6"><label for="topic">主题</label><select id="topic"><option value="">全部主题</option><option>系统设计</option><option>并发与基础</option><option>项目与通信</option><option>驱动与 BSP</option><option>RTOS 与传感器</option><option>音视频</option><option>操作系统</option></select><output id="count" aria-live="polite"></output></div>
-<nav id="entries" class="entries" aria-label="面经快速跳转">
-<!-- ENTRY_LINKS_START -->
-<a href="#insta360-systems">影石一面约 50 分钟：项目链路、端侧部署与性能</a>
-<a href="#insta360-camera">影石相机实习：结构体、线程安全与手写代码</a>
-<a href="#hirain">经纬恒润实习：项目分工和排查证据</a>
-<a href="#momenta">Momenta 实习：UART、CAN 和车载诊断</a>
-<a href="#insta360-driver">影石驱动实习：设备树、字符设备、I²C 与 IRQ</a>
-<a href="#limxdynamics">逐际动力实习：RTOS、时钟域与传感器</a>
-<a href="#netease">网易实习：UART 带宽、IPC 和 FreeRTOS</a>
-<a href="#insta360-media">影石实习一面约 45 分钟：音视频、网络与存储</a>
-<a href="#qualcomm">高通暑期实习：设备树、Kbuild 与相机缓冲区</a>
-<a href="#agibot-novastar">智元与诺瓦星云：I²C、内核锁和 DMA</a>
-<a href="#deeproute">元戎历史面经：SPI、C/C++ 与编码</a>
-<a href="#transsion">传音秋招一面：V4L2、双摄与无图排查</a>
-<a href="#bytedance-xv6">字节 C++ 日常实习一面：xv6 项目追问</a>
-<a href="#huawei-ota-framebuffer">华为嵌软暑期实习：OTA 回退与 framebuffer 多缓冲</a>
-<a href="#bytedance-media-idr">字节多媒体暑期实习一面：帧率、IDR 与 FFmpeg</a>
-<a href="#hikvision-bsp-bringup">海康 BSP 实习：启动链、内核裁剪与字符设备</a>
-<!-- ENTRY_LINKS_END -->
-</nav>
 <div id="articles">
 <!-- ANSWER_ARTICLES_START -->
 <article id="insta360-systems" data-topic="系统设计" data-kind="实习"><div class="eyebrow">实习面经 · 系统设计</div><h3>影石一面约 50 分钟：项目链路、端侧部署与性能</h3><p><strong>原帖题目要点：</strong> 从采集、控制到上报如何设计？为什么选这个模型、效果不佳怎么查？Linux 进程 CPU 90% 怎么定位？C 内存拷贝与深浅拷贝。</p>
@@ -151,4 +216,66 @@
 <p>2026-11-17：新增「面试题与参考答案」，按面经分组保留题目要点、示范答法及项目练习提示。</p>
 <p>2026-11-17：首版加入牛客与小红书的原帖，搜索不限城市。按技术方向收录，优先实习面经；校招和历史汇编单列。工作地点仅在原帖或对应岗位资料写明时标注。</p>
 <!-- UPDATE_LOG_END -->
-</section></div></div></main><footer class="shell foot"><a href="../">返回我的笔记</a><a href="#main">回到顶部 ↑</a></footer></body></html>
+</section>
+          <footer class="page-end"><a href="../">返回我的笔记</a><a href="#main">回到开头 ↑</a></footer>
+        </div>
+      </div>
+      <aside id="article-outline" class="outline-panel" aria-labelledby="toc-title">
+        <div class="outline-header"><strong id="toc-title">本篇目录</strong><button id="close-toc" type="button" aria-label="关闭目录" hidden>×</button></div>
+        <nav class="section-links" aria-label="章节导航"><a href="#questions">题目与参考答案</a></nav>
+<nav id="entries" class="entries" aria-label="面经快速跳转">
+<!-- ENTRY_LINKS_START -->
+<a href="#insta360-systems">影石一面约 50 分钟：项目链路、端侧部署与性能</a>
+<a href="#insta360-camera">影石相机实习：结构体、线程安全与手写代码</a>
+<a href="#hirain">经纬恒润实习：项目分工和排查证据</a>
+<a href="#momenta">Momenta 实习：UART、CAN 和车载诊断</a>
+<a href="#insta360-driver">影石驱动实习：设备树、字符设备、I²C 与 IRQ</a>
+<a href="#limxdynamics">逐际动力实习：RTOS、时钟域与传感器</a>
+<a href="#netease">网易实习：UART 带宽、IPC 和 FreeRTOS</a>
+<a href="#insta360-media">影石实习一面约 45 分钟：音视频、网络与存储</a>
+<a href="#qualcomm">高通暑期实习：设备树、Kbuild 与相机缓冲区</a>
+<a href="#agibot-novastar">智元与诺瓦星云：I²C、内核锁和 DMA</a>
+<a href="#deeproute">元戎历史面经：SPI、C/C++ 与编码</a>
+<a href="#transsion">传音秋招一面：V4L2、双摄与无图排查</a>
+<a href="#bytedance-xv6">字节 C++ 日常实习一面：xv6 项目追问</a>
+<a href="#huawei-ota-framebuffer">华为嵌软暑期实习：OTA 回退与 framebuffer 多缓冲</a>
+<a href="#bytedance-media-idr">字节多媒体暑期实习一面：帧率、IDR 与 FFmpeg</a>
+<a href="#hikvision-bsp-bringup">海康 BSP 实习：启动链、内核裁剪与字符设备</a>
+<!-- ENTRY_LINKS_END -->
+</nav>
+        <nav class="section-links" aria-label="其他章节"><a href="#sources">原帖索引</a><a href="#practice">练习清单</a><a href="#updates">更新记录</a></nav>
+      </aside>
+    </div>
+  </div>
+</main>
+<script>
+  (() => {
+    const panel = document.getElementById('article-outline');
+    const toggle = document.getElementById('open-toc');
+    const close = document.getElementById('close-toc');
+    const isSmall = matchMedia('(max-width: 1099px)');
+    function setOpen(open, focus) {
+      panel.classList.toggle('open', open);
+      toggle.setAttribute('aria-expanded', String(open));
+      if (focus) (open ? close : toggle).focus();
+    }
+    toggle.hidden = close.hidden = false;
+    toggle.addEventListener('click', () => setOpen(!panel.classList.contains('open'), isSmall.matches));
+    close.addEventListener('click', () => setOpen(false, true));
+    panel.addEventListener('click', event => {
+      const link = event.target.closest('a[href^="#"]');
+      if (!link || !isSmall.matches) return;
+      const target = document.getElementById(link.hash.slice(1));
+      if (target) {
+        setOpen(false, false);
+        target.setAttribute('tabindex', '-1');
+        target.focus({preventScroll:true});
+      }
+    });
+    document.addEventListener('keydown', event => {
+      if (event.key === 'Escape' && panel.classList.contains('open')) setOpen(false, true);
+    });
+  })();
+</script>
+</body>
+</html>
