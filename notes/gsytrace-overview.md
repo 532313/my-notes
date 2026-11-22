@@ -1,4 +1,4 @@
-<!-- notebook: {"version":1,"title":"GsyTrace 应用层总览 · 从一段录像读懂 M0–M7","notebook":"GsyTrace 应用层","created":"2026-11-22T12:00:00Z","updated":"2026-11-22T15:42:51Z","favorite":false,"trashed":false,"source":null} -->
+<!-- notebook: {"version":1,"title":"GsyTrace 应用层总览 · 从一段录像读懂 M0–M7","notebook":"GsyTrace 应用层","created":"2026-11-22T12:00:00Z","updated":"2026-11-22T16:34:02Z","favorite":false,"trashed":false,"source":null} -->
 
 # GsyTrace 应用层总览 · 从一段录像读懂 M0–M7
 
@@ -124,11 +124,16 @@ ACK 要证明会话和分片已经一起提交。回执丢了就重发，Hub 核
 
 ## 面试基础题 · Linux 与 C
 
-下面五题可以当成一轮嵌入式 Linux 面试来练。Linux 命令可以在 WSL 终端练，排查板端进程时在 MobaXterm 对应板子的 SSH 终端执行。C 示例各自都有一个 `main()`，每次复制一个代码块，存为 `demo.c` 后单独编译。
+这 11 道题从 Linux 排障和 C 的拷贝开始，接着练多线程、函数调用和结构体传参，最后用 C++ 看继承和哈希表。Linux 命令可以在 WSL 终端练，排查板端进程时在 MobaXterm 对应板子的 SSH 终端执行。
+
+每道 C 或 C++ 题的完整示例各有一个 `main()`，一次复制一个来运行。C 示例存为 `demo.c`，C++ 示例存为 `demo.cpp`。在 WSL 终端进入源文件所在目录，按语言选对应的命令。`-pthread` 用于编译和链接 POSIX 线程示例。
 
 ```bash
-cc -std=c11 -Wall -Wextra -Werror demo.c -o demo
-./demo
+# C 示例（包括线程题）
+cc -std=c11 -Wall -Wextra -Werror -pthread demo.c -o demo && ./demo
+
+# C++ 示例
+c++ -std=c++17 -Wall -Wextra -Werror demo.cpp -o demo && ./demo
 ```
 
 ### 1. Linux 常用命令有哪些？平时怎么用？
@@ -332,6 +337,357 @@ int main(void)
 **追问。目的缓冲区不足时，怎么判断 snprintf 截断了？** 先检查返回值是否小于零，再用 `(size_t)ret >= sizeof dst` 判断。返回值表示完整输出原本需要写入的字符数，单位是字节，不计末尾的终止符。
 
 **追问。memcpy 能复制字符串吗？** 已知源是有效字符串、目的空间足够、两块区域不重叠时，可以写成 `memcpy(dst, src, strlen(src) + 1)`。多出的 1 字节用来把终止符一起复制过去。
+
+### 6. Linux 线程怎么同步？为什么 count++ 要保护？
+
+**可以这样讲。** 我先看线程之间要协调什么。多线程要修改同一组共享数据时，我用互斥锁保护这段代码。要等队列里有数据时，我把互斥锁与条件变量配合使用。如果只更新一个独立计数，我可以用 C11 原子的 `atomic_fetch_add()`。`count++` 要读旧值、计算新值、写回结果，两条线程可能读到同一个旧值，所以整次更新都要纳入保护。
+
+用这张顺序表理解丢失更新。实际 C 程序对普通共享变量这样并发访问会产生数据竞争，行为未定义。表中只是演示一种可能的交错。
+
+```text
+时刻     线程 A          线程 B          共享 count
+ 1      读到 0                              0
+ 2                      读到 0              0
+ 3      写入 1                              1
+ 4                      写入 1              1
+```
+
+| 需要协调什么 | 常用做法 |
+| --- | --- |
+| 一个线程更新一组共享字段时，让其他线程等候 | 互斥锁（mutex，mutual exclusion）。把读取、判断和更新放在同一段持锁代码里 |
+| 睡眠等队列有数据，或者等队列关闭 | 条件变量（condition variable）。用互斥锁保护条件，醒来后用 `while` 重新检查 |
+| 管理若干个可用名额 | 信号量（semaphore）。`sem_wait()` 取一个名额，`sem_post()` 还一个 |
+| 多个线程可同时读取，写入时需要独占 | 读写锁（read-write lock）。先确认读并发能带来收益 |
+| 更新独立计数或读写一个共享标志 | C11 原子操作（atomic operation），如 `atomic_fetch_add()`、`atomic_store()` |
+| 等待时间很短，并且持锁期间不会阻塞 | 自旋锁。等待时持续检查锁，会消耗 CPU |
+| 等一条线程退出，再读取它留下的结果 | `pthread_join()` |
+| 等所有参与线程抵达同一个阶段 | 屏障。大家都到齐后才能继续下一阶段 |
+
+两条线程各加 10,000 次。`increment()` 里先加锁，完成写回再解锁。主线程等两条线程都结束后打印结果。`check_pthread()` 负责在调用出错时打印错误并退出。
+
+```c
+#include <pthread.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+static int count;
+static pthread_mutex_t count_lock = PTHREAD_MUTEX_INITIALIZER;
+
+static void check_pthread(int rc, const char *operation)
+{
+    if (rc != 0) {
+        fprintf(stderr, "%s: %s\n", operation, strerror(rc));
+        exit(EXIT_FAILURE);
+    }
+}
+
+static void *increment(void *unused)
+{
+    (void)unused;
+    for (int i = 0; i < 10000; ++i) {
+        check_pthread(pthread_mutex_lock(&count_lock), "pthread_mutex_lock");
+        ++count;
+        check_pthread(pthread_mutex_unlock(&count_lock), "pthread_mutex_unlock");
+    }
+    return NULL;
+}
+
+int main(void)
+{
+    pthread_t a, b;
+    check_pthread(pthread_create(&a, NULL, increment, NULL), "pthread_create");
+    check_pthread(pthread_create(&b, NULL, increment, NULL), "pthread_create");
+    check_pthread(pthread_join(a, NULL), "pthread_join");
+    check_pthread(pthread_join(b, NULL), "pthread_join");
+    printf("count=%d\n", count);
+    check_pthread(pthread_mutex_destroy(&count_lock), "pthread_mutex_destroy");
+    return 0;
+}
+```
+
+预期输出 `count=20000`。GsyTrace 的 `m2/video_queue.c` 使用互斥锁保护包数、字节数和队列位置。在队列为空且仍开启时，写盘线程睡在 `pthread_cond_wait()`。关闭队列时用 `pthread_cond_broadcast()` 唤醒等待者，写盘线程会继续取完剩余的包。停止标志用原子变量。主线程通过 `pthread_join()` 等两路采集收尾，采集线程也会等各自的写盘线程退出。
+
+**追问。只给 count 加 volatile 可以吗？** `volatile` 约束编译器处理这个变量的访问，读、加、写仍是分开的。需要保证单个计数正确时，可在引入 `<stdatomic.h>` 后声明 `atomic_int count = 0`，每次用 `atomic_fetch_add(&count, 1)` 完成一次原子更新。如果要同时维持多个字段之间的关系，可以把这组更新放进同一把锁。
+
+**追问。条件变量为什么用 while 等？** `pthread_cond_wait()` 等待时会释放互斥锁，返回前会重新拿到锁。醒来时可能发生虚假唤醒，或者另一个消费者已经先把包取走，所以拿到锁以后要再检查队列状态。[POSIX 条件变量手册](https://www.man7.org/linux/man-pages/man3/pthread_cond_wait.3p.html)
+
+### 7. 函数调用栈是什么？调用和返回时发生了什么？
+
+**可以这样讲。** 函数调用栈记录谁调用了谁，还帮助程序恢复到调用之后继续执行。一个函数调用另一个函数时，编译器会按目标平台约定传递参数，并按需要保存返回地址、寄存器或局部数据。每次调用在栈上使用的那部分空间叫栈帧。最内层函数先返回，所以调用是从外往里，返回是从里往外。
+
+日志依次显示进入 `outer()`、进入 `inner()`，以及返回之后从哪里继续执行。
+
+```c
+#include <stdio.h>
+
+static int inner(int x)
+{
+    printf("inner enter, x=%d\n", x);
+    return x + 1;
+}
+
+static int outer(int x)
+{
+    printf("outer enter, x=%d\n", x);
+    int result = inner(x);
+    printf("outer resumes, result=%d\n", result);
+    return result * 2;
+}
+
+int main(void)
+{
+    puts("main calls outer");
+    int result = outer(3);
+    printf("main resumes, result=%d\n", result);
+    return 0;
+}
+```
+
+```sh
+cc -std=c11 -Wall -Wextra -g -O0 demo.c -o demo && ./demo
+```
+
+预期输出如下。进入 `inner()` 时，调用链是 `main()` → `outer()` → `inner()`，`inner()` 是栈顶的当前调用。调试器停在这里时，可用 GDB（GNU Debugger，GNU 调试器）的 `bt`（backtrace，调用栈回溯）查看这条链。
+
+```text
+main calls outer
+outer enter, x=3
+inner enter, x=3
+outer resumes, result=4
+main resumes, result=8
+```
+
+在 RV1106 的 32 位 Arm 程序里，调用规则属于 ABI（Application Binary Interface，应用程序二进制接口）。按 AAPCS32（Procedure Call Standard for the Arm Architecture，32 位 Arm 架构过程调用标准），例如一个函数接收五个普通 `int` 参数，前四个经 `r0` 到 `r3` 传递，第五个经栈传递。普通 `int` 返回值走 `r0`，SP（Stack Pointer，栈指针）在 `r13`，`BL`（Branch with Link，带返回链接的跳转）将返回地址写入 LR（Link Register，链接寄存器）`r14`。函数需要保留原来的返回地址时，编译器可以把它保存到栈里。需要栈空间时，函数把 SP 往低地址移。返回前恢复保存的寄存器和 SP，腾出来的空间就可以给下一次调用复用。参数类型和对齐也会影响实际的寄存器分配。[Arm AAPCS32 官方规范](https://github.com/ARM-software/abi-aa/blob/main/aapcs32/aapcs32.rst)
+
+**追问。每个局部变量都放在栈里吗？** 编译器会按需放到寄存器或栈上。优化还可能消去中间变量，或者把短函数展开到调用处。调试示例用 `-g -O0` 生成调试信息并降低优化程度，方便对照代码看调用顺序。
+
+**追问。为什么函数不能返回普通局部变量的地址？** 普通局部对象随函数返回而结束生命周期。此后再通过留下的地址访问它会产生未定义行为。可以直接返回值，或由调用者提供缓冲区让函数填入。
+
+### 8. C 结构体当参数时，传值和传指针怎么选？
+
+**可以这样讲。** C 的参数按值传递。传 `struct Packet p` 时，函数得到一份结构体值，修改副本里的普通字段只影响副本。传 `struct Packet *p` 时，复制的是地址，函数可以通过该地址访问原结构体。只想借来读时，我用 `const struct Packet *p` 表达接口对这个结构体的只读意图。选择哪种写法，要看是否需要修改原对象、对象大小和它的生命周期。
+
+这个例子的三次调用分别修改结构体副本的长度、原结构体的长度和共享的字节数组。
+
+```c
+#include <stdio.h>
+
+struct Packet {
+    size_t bytes;
+    unsigned char *data;
+};
+
+static void shorten_copy(struct Packet p)
+{
+    p.bytes = 1;
+    printf("inside the copy: bytes=%zu\n", p.bytes);
+}
+
+static void shorten_original(struct Packet *p)
+{
+    p->bytes = 1;
+}
+
+static void change_shared_data(struct Packet p)
+{
+    p.data[0] = 'Z';
+}
+
+int main(void)
+{
+    unsigned char payload[] = {'A', 'B'};
+    struct Packet packet = { .bytes = sizeof payload, .data = payload };
+
+    shorten_copy(packet);
+    printf("after passing by value: bytes=%zu\n", packet.bytes);
+    shorten_original(&packet);
+    printf("after passing a pointer: bytes=%zu\n", packet.bytes);
+    change_shared_data(packet);
+    printf("shared data: first=%c\n", packet.data[0]);
+    return 0;
+}
+```
+
+```text
+inside the copy: bytes=1
+after passing by value: bytes=2
+after passing a pointer: bytes=1
+shared data: first=Z
+```
+
+`&packet` 取原对象的地址，`p->bytes` 等价于 `(*p).bytes`。最后一行变为 `Z`，因为结构体副本中的 `data` 仍指向同一个 `payload`。GsyTrace 的 `m2/video_queue.c` 有一个相似的赋值 `q->slots[tail] = *packet`。入队成功后立即清空调用者的包描述符，之后由写盘线程从队列取出并释放那块缓冲区。这是程序约定的所有权转移。
+
+**追问。传指针一定更快吗？** 传值时复制的实际成本取决于结构体大小、ABI 和编译器优化，小结构体可能直接走寄存器。传指针会少复制大对象，同时增加一次间接访问，并要求对象有效。先按接口语义选择，性能敏感时再用同一组输入测量。
+
+**追问。const struct Packet *p 能保护指针成员指向的数据吗？** 它约束的是通过 `p` 对结构体本身的访问，例如通过它写 `p->bytes` 会被编译器拒绝。如果成员仍声明成 `unsigned char *data`，通过它仍能修改缓冲区。想表达缓冲区只读，可以在只读接口里用 `const unsigned char *data`。
+
+### 9. C++ 的基类和派生类都声明了 int a，访问哪个？
+
+**可以这样讲。** 以普通的公开继承为例。一个派生类对象里有基类子对象，基类的 `a` 和派生类的 `a` 各自存值。通过派生类对象写 `obj.a`，名字查找先在派生类里找到 `a`，这叫名字隐藏。需要访问基类的成员时，我在派生类的成员函数里写 `Base::a`，在对象外面写 `obj.Base::a`。把同一个对象绑定到 `Base&` 后，`ref.a` 按引用的静态类型查找，访问的就是基类里的 `a`。
+
+```cpp
+#include <iostream>
+
+struct Base {
+    int a = 10;
+};
+
+struct Derived : public Base {
+    int a = 20;
+};
+
+int main()
+{
+    Derived obj;
+    Base& ref = obj;
+
+    std::cout << obj.a << ' ' << obj.Base::a << ' ' << ref.a << '\n';
+    ref.a = 30;
+    std::cout << obj.a << ' ' << obj.Base::a << ' ' << ref.a << '\n';
+}
+```
+
+第一行输出 `20 10 10`，第二行输出 `20 30 30`。`ref` 绑定到 `obj` 里的基类子对象，所以通过 `ref` 修改基类的 `a`，用 `obj.Base::a` 也能读到新值。
+
+**追问。数据成员会像虚函数一样按运行时类型选择吗？** 数据成员访问遵循编译期的名字查找和访问规则。虚函数调用可以按对象的运行时类型选择实现。上面通过 `Base&` 读取的始终是基类的成员。
+
+**追问。如果基类的 `a` 是 `private`，还能写 `obj.Base::a` 吗？** 外部这样写会触发访问错误。若需要让外部读它，可以在基类里提供公有的 `get_a()`。限定写法负责选中成员，成员的访问权限由类定义决定。
+
+### 10. 哈希表怎么找数据，两个键落在同一处怎么办？
+
+**可以这样讲。** 哈希表先把键交给哈希函数，再把结果换成桶的下标。比如用编号查询资料，编号是键，存下来的资料是值。可以把桶想成编号的抽屉，找到抽屉后，还要比较里面存的完整键。两个不同的键可能落入同一个桶，这叫哈希冲突。下面用 5 个桶，键 `1`、`6`、`11` 都会落在 1 号桶。这个例子用拉链法，每个桶里放一小组键值对。
+
+```cpp
+#include <array>
+#include <cstddef>
+#include <iostream>
+#include <string>
+#include <utility>
+#include <vector>
+
+class FiveBuckets {
+public:
+    void put(int key, const std::string& value)
+    {
+        auto& entries = buckets_[bucket_index(key)];
+        for (auto& entry : entries) {
+            if (entry.first == key) {
+                entry.second = value;
+                return;
+            }
+        }
+        entries.emplace_back(key, value);
+    }
+
+    bool lookup(int key, std::string& value) const
+    {
+        const auto& entries = buckets_[bucket_index(key)];
+        for (const auto& entry : entries) {
+            if (entry.first == key) {
+                value = entry.second;
+                return true;
+            }
+        }
+        return false;
+    }
+
+private:
+    static std::size_t bucket_index(int key)
+    {
+        return static_cast<std::size_t>((key % 5 + 5) % 5);
+    }
+
+    std::array<std::vector<std::pair<int, std::string>>, 5> buckets_;
+};
+
+int main()
+{
+    FiveBuckets table;
+    table.put(1, "one");
+    table.put(6, "six");
+    for (int key : {1, 6, 11}) {
+        std::string value;
+        if (table.lookup(key, value)) {
+            std::cout << key << " -> " << value << '\n';
+        } else {
+            std::cout << key << " -> missing\n";
+        }
+    }
+}
+```
+
+输出依次为 `1 -> one`、`6 -> six` 和 `11 -> missing`。查 `11` 时，程序确实找到了 1 号桶，逐个对比 `1` 和 `6` 后才知道 `11` 没存进去。这个示例固定用 5 个桶，`(key % 5 + 5) % 5` 也能让负数键得到合法下标。
+
+**追问。还可以怎样处理冲突？** 开放寻址法把数据放在表的槽位里。以线性探测为例，首选槽位冲突后就依次检查下一格，直到找到相同键或确定停止查找。若支持删除，常用专门标记保留探测路径，避免在中途遇到一个刚删除的位置便提前结束。
+
+**追问。哈希表查找总是 `O(1)` 吗？** 当哈希分布合适、平均每个桶里只有少量元素时，查找平均是 `O(1)`。如果大量键集中在一个桶，拉链法最坏会查 `O(n)` 个元素。扩容时一般要用新的桶数重算每个键的位置。
+
+### 11. 两数之和怎么用哈希表，为什么要先查再存？
+
+**可以这样讲。** 我从左向右遍历数组，用 `std::unordered_map` 记录已经见过的值和下标。当前值是 `x`，就去表里找 `target - x`。找到了便返回两个下标，没找到就登记当前值。先查再存让匹配项一定来自之前的位置，也能处理 `[3, 3]` 配目标 `6` 的情况。
+
+拿 `[4, 7, 2, 6]` 和目标 `9` 走一遍。
+
+| 当前下标 | 当前数 | 去表里找什么 | 这一步的结果 |
+| --- | --- | --- | --- |
+| 0 | 4 | 5 | 找不到，记下 `4 → 0` |
+| 1 | 7 | 2 | 找不到，记下 `7 → 1` |
+| 2 | 2 | 7 | 查到 `7 → 1`，返回下标 `[1, 2]` |
+
+```cpp
+#include <climits>
+#include <cstddef>
+#include <cstdint>
+#include <iostream>
+#include <unordered_map>
+#include <vector>
+
+struct Answer {
+    bool found;
+    std::size_t first;
+    std::size_t second;
+};
+
+Answer two_sum(const std::vector<int>& values, int target)
+{
+    std::unordered_map<std::int64_t, std::size_t> seen;
+    for (std::size_t i = 0; i < values.size(); ++i) {
+        const std::int64_t current = values[i];
+        const std::int64_t needed = static_cast<std::int64_t>(target) - current;
+        const auto match = seen.find(needed);
+        if (match != seen.end()) {
+            return {true, match->second, i};
+        }
+        seen.emplace(current, i);
+    }
+    return {false, 0, 0};
+}
+
+void print(Answer answer)
+{
+    if (answer.found) {
+        std::cout << answer.first << ' ' << answer.second << '\n';
+    } else {
+        std::cout << "no pair\n";
+    }
+}
+
+int main()
+{
+    print(two_sum({4, 7, 2, 6}, 9));
+    print(two_sum({3, 3}, 6));
+    print(two_sum({3}, 6));
+    print(two_sum({INT_MIN, INT_MAX}, -1));
+    print(two_sum({INT_MIN, 0}, INT_MAX));
+}
+```
+
+五行依次输出 `1 2`、`0 1`、`no pair`、`0 1`、`no pair`。下标从 0 开始。`emplace()` 遇到同键会保留第一次登记的下标。每个位置做一次查找，必要时再做一次插入，所以平均时间是 `O(n)`，额外空间是 `O(n)`。例如最坏情况下许多键都碰撞，每次查找可能扫描此前所有元素，整个过程可到 `O(n²)`。
+
+**追问。如果 `target - x` 超出 `int` 范围怎么办？** 先把操作数提升到 `std::int64_t` 再减。在这里的 32 位和 64 位 Linux 环境，`int` 是 32 位，两者的差能放进 64 位有符号整数。哈希表也用 64 位键。先按 `int` 做减法再把结果转成 64 位，会在转换前触发有符号溢出。
+
+**追问。为什么查找用 `find()`？** `find()` 查不到时返回 `end()`，它不会改动哈希表。`operator[]` 遇到不存在的键会插入一个默认值。例如下标的默认值是 `0`，这会让缺失的键和合法的 0 号下标混在一起。
 
 ## 源码和实测口径
 
