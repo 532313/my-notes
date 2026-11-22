@@ -1,4 +1,4 @@
-<!-- notebook: {"version":1,"title":"GsyTrace 应用层总览 · 从一段录像读懂 M0–M7","notebook":"GsyTrace 应用层","created":"2026-11-22T12:00:00Z","updated":"2026-11-22T15:25:04Z","favorite":false,"trashed":false,"source":null} -->
+<!-- notebook: {"version":1,"title":"GsyTrace 应用层总览 · 从一段录像读懂 M0–M7","notebook":"GsyTrace 应用层","created":"2026-11-22T12:00:00Z","updated":"2026-11-22T15:42:51Z","favorite":false,"trashed":false,"source":null} -->
 
 # GsyTrace 应用层总览 · 从一段录像读懂 M0–M7
 
@@ -121,6 +121,217 @@ ACK 要证明会话和分片已经一起提交。回执丢了就重发，Hub 核
 | PTS（Presentation Time Stamp，显示时间戳）、单调时钟 | PTS 说明这一帧该在什么时候出现。单调时钟适合计算一次开机期间经过了多久，核对跨设备或跨重启的数据时还得带会话和启动标识。 |
 | ASR（Automatic Speech Recognition，自动语音识别）、VAD（Voice Activity Detection，语音活动检测）、NPU（Neural Processing Unit，神经网络处理单元） | VAD 找出哪里有人声，ASR 把人声转成字。NPU 是加速神经网络计算的处理单元，项目用它跑图注模型。 |
 | RGB565、LVGL（Light and Versatile Graphics Library，轻量图形库） | RGB 指 Red、Green、Blue。每个 RGB565 像素用 16 位装颜色，红 5 位、绿 6 位、蓝 5 位。LVGL 把画面、按钮和进度条组织成可触摸的界面。 |
+
+## 面试基础题 · Linux 与 C
+
+下面五题可以当成一轮嵌入式 Linux 面试来练。Linux 命令可以在 WSL 终端练，排查板端进程时在 MobaXterm 对应板子的 SSH 终端执行。C 示例各自都有一个 `main()`，每次复制一个代码块，存为 `demo.c` 后单独编译。
+
+```bash
+cc -std=c11 -Wall -Wextra -Werror demo.c -o demo
+./demo
+```
+
+### 1. Linux 常用命令有哪些？平时怎么用？
+
+**可以这样讲。** 我按手上的问题选命令。找文件用 `find`，找日志内容用 `grep`，盯新增日志用 `tail -f`。看进程先用 `ps` 定位，再用 `top` 观察。文件写不进去就用 `df -h` 看目标分区空间，用 `du -sh` 找哪个目录占用大。网络连不上时，我会确认板子有没有地址、程序有没有监听端口。
+
+| 想查什么 | 常用命令 | 怎么读 |
+|---|---|---|
+| 我在哪，目录里有什么 | `pwd`、`ls -lah`、`cd ..` | `pwd` 打印当前位置。 `ls -lah` 列出含隐藏项的详细信息。 `cd ..` 退到上一级。 |
+| 怎么管理文件 | `mkdir -p logs`、`cp 源文件 目标文件`、`mv 旧名 新名`、`rm -i 文件` | 分别是创建目录、复制、移动或改名、交互式删除。 |
+| 怎么读文本和日志 | `cat 文件`、`less 文件`、`tail -n 50 文件`、`tail -f 文件` | 短文件可一次看完，长文件分屏看。调试常先看最后 50 行，再持续跟日志。 |
+| 文件或文字在哪 | `find . -name '*.c'`、`grep -rn 'ERROR' 日志目录` | `find` 从当前目录按文件名找。 `grep -rn` 递归找包含关键字的行并打印行号。 |
+| 进程与资源怎样 | `ps -ef`、`top`、`df -h .`、`du -sh .` | 先看进程列表或实时负载。后两条分别看当前目录所在分区的空间、该目录树的占用。 |
+| 网络和设备怎样 | `ip addr`、`ss -lntp`、`dmesg \| tail -n 30` | 看接口地址、TCP（Transmission Control Protocol，传输控制协议）监听端口和最近的内核消息。进程信息和内核消息可能需要权限。 |
+| 复制来的程序能否执行 | `file ./程序名`、`ls -l ./程序名`、`chmod +x ./程序名` | 先确认产物的类型、架构和权限。确认产物来源后，缺执行权限可以补上。 |
+
+在 WSL 进项目根目录后，可以直接用这几条做练习。这个例子按源码文件名找候选文件，再从文件内容定位复制代码。
+
+```bash
+pwd
+ls -lah
+find . -type f -name 'video_capture.c'
+grep -n 'memcpy' m2/video_capture.c
+df -h .
+du -sh m2
+```
+
+板端用的 BusyBox 会把许多命令放进同一个小程序里。工具是否安装、选项是否支持，先在目标设备上用 `命令 --help` 看一眼。例如 WSL 上的 `ps -ef` 在精简固件上可能只支持写 `ps`。端口工具如果没有 `ss`，可以看看设备有没有 `netstat`。
+
+**追问。find 和 grep 分别什么时候用？** 我想找 `video_capture.c` 在哪个目录，用 `find`。我想看代码里哪几行调用了 `memcpy()`，用 `grep -n`。
+
+**追问。df 和 du 为什么会报不同的数字？** `df` 看的是整个文件系统的块使用情况，`du` 从目录往下汇总还能遍历到的文件。比如大日志被删了但还被进程打开，目录里已经找不到，相关空间要等最后一个打开它的描述符关闭才释放。
+
+### 2. Linux 某个进程 CPU 高怎么查？
+
+**可以这样讲。** 我先连续观察几次，确认是启动时短暂冲高，还是整个录制过程都很高。看百分比前先确认是按一个逻辑 CPU 算，还是除过全机逻辑 CPU 数。然后用 `top -H -p PID` 找最忙的线程。设备支持 `perf` 时，我采样这个线程的调用栈。只有精简工具时，我读 `/proc` 线程统计，并在取帧、复制、入队和写盘几处加计数或计时。根据证据区分忙轮询、大量拷贝、软件编解码和内核开销。最后用相同输入和负载复测 CPU、处理延迟和掉帧数。
+
+CPU（Central Processing Unit，中央处理器）的逻辑核是系统能单独安排一个线程运行的执行位置。procps 版 `top` 在 Irix 模式下，一个逻辑 CPU 跑满记为 100%，多线程进程合计可以超过 100%。例如看到 160%，相当于平均占了 1.6 个逻辑 CPU。若全机有 4 个逻辑 CPU，则约占全机理论容量的 40%。交互时用大写 `I` 切换是否除以逻辑 CPU 数。这个例子用的是进程列表里的 `%CPU` 列。[top 手册](https://man7.org/linux/man-pages/man1/top.1.html)
+
+**第一步，找对进程和线程。** PID（Process ID，进程编号）用来找进程，TID（Thread ID，线程编号）用来找线程。GsyTrace 用小屏开始录制时，`m2/control_server.c` 启动 `m2-recorder record` 子进程。查采集和写盘优先找这个子进程。打开线程视图后，列表 PID 列显示的是每条线程的编号。按大写 `P` 按 CPU 使用率排序，多看几个刷新周期，记下持续靠前的线程。
+
+```bash
+ps -ef | grep '[m]2-recorder'
+PID=1234  # 改成实际录制进程编号
+top -H -p "$PID"
+```
+
+**第二步，采样热点调用栈。** 调用栈表示某个时刻程序正在执行哪个函数、上一级是从哪里调用过来的。下面用软件事件 `cpu-clock` 对指定线程采样 10 秒。 `-g` 记录调用链，`-F 99` 指定目标采样频率，`-o` 指定输出文件。在可写目录执行。当 BusyBox 的 `top` 缺少这些选项、内核未启用相应支持或 `perf` 没有权限时，可以改用下一步。调用链名字缺失时，核对是否有与板端可执行产物匹配的符号，以及调用链能否正确展开。[perf record 手册](https://man7.org/linux/man-pages/man1/perf-record.1.html)
+
+```bash
+TID=1235  # 改成实际热点线程编号
+perf record -e cpu-clock -F 99 -g -t "$TID" -o cpu-thread.data -- sleep 10
+perf report -i cpu-thread.data
+```
+
+**第三步，没有 perf 也能缩小范围。** 每条线程都有 `/proc/PID/task/TID/stat`。第 14、15 字段分别是 `utime` 和 `stime`，即线程在用户态和内核态累计运行的时钟滴答数。取两次差值，除以 `getconf CLK_TCK` 得到这段时间真正占了几秒 CPU，再除以观测间隔。下面的脚本先去掉可能含空格的括号内线程名，所以原来的第 14、15 字段变成脚本里的第 12、13 列。保留前面两个实际编号再运行。[任务目录手册](https://man7.org/linux/man-pages/man5/proc_pid_task.5.html) [stat 字段手册](https://man7.org/linux/man-pages/man5/proc_pid_stat.5.html)
+
+```bash
+(
+    set -eu
+    stat_file="/proc/$PID/task/$TID/stat"
+    read_ticks() {
+        awk '{ sub(/^.*\) /, ""); print $12 + $13 }' "$stat_file"
+    }
+
+    hz=$(getconf CLK_TCK)
+    t0=$(awk '{print $1}' /proc/uptime)
+    ticks0=$(read_ticks)
+    sleep 1
+    t1=$(awk '{print $1}' /proc/uptime)
+    ticks1=$(read_ticks)
+    awk -v hz="$hz" -v dt0="$t0" -v dt1="$t1" \
+        -v ticks0="$ticks0" -v ticks1="$ticks1" '
+        BEGIN {
+            if (hz <= 0 || dt1 <= dt0 || ticks1 < ticks0) exit 1
+            printf "一核口径 CPU %.1f%%\n", 100 * (ticks1 - ticks0) / hz / (dt1 - dt0)
+        }'
+)
+```
+
+线程需要在采样期间持续运行。若某个阶段耗时大，用 `clock_gettime(CLOCK_MONOTONIC, ...)` 量经过时间，用 `CLOCK_THREAD_CPUTIME_ID` 量同一个线程真正用的 CPU 时间。举例说，写盘经过 200 毫秒，线程只用了 2 毫秒 CPU，下一步就应查写盘和等待路径。[clock_gettime 手册](https://man7.org/linux/man-pages/man2/clock_gettime.2.html)
+
+**追问。看到 memcpy 很热，能直接去掉吗？** 先看它从哪一层调用、每秒拷多少字节。比如 GsyTrace 的 `m2/video_capture.c` 必须在 `RK_MPI_VENC_ReleaseStream()` 之前把写盘线程要用的数据复制出来。应用一归还，编码器就可以复用原缓冲。可以继续找重复拷贝，或先验证缓冲区生命周期，再测改动后的数据完整性。
+
+**追问。CPU 降了怎么证明优化有效？** 我会保持同样的分辨率、目标帧率、输入、录制时长和存储条件，改前改后都记录 CPU、处理延迟、实际输出帧数和掉帧数。程序少处理了一半帧时，CPU 降下来的数字没有说服力。
+
+### 3. C 语言怎么拷贝内存？memcpy 和 memmove 有什么区别？
+
+**可以这样讲。** 我先确认拷贝长度和两块内存的关系。`memcpy(dst, src, n)` 按字节复制，适用于源和目的区域互不重叠。区域可能重叠时用 `memmove()`，它会保留原始数据的顺序。两个函数都在 `<string.h>`，调用者要保证源能读 `n` 字节、目的能写 `n` 字节。
+
+下面两次拷贝都按字节数执行。第一次复制包含零字节的数据，第二次在同一个数组里向右挪四个字符。
+
+```c
+#include <stdio.h>
+#include <string.h>
+
+int main(void)
+{
+    const unsigned char source[] = {0x41, 0x00, 0x42};
+    unsigned char target[sizeof source];
+    memcpy(target, source, sizeof source);
+    printf("%02X %02X %02X\n", (unsigned)target[0],
+           (unsigned)target[1], (unsigned)target[2]);
+
+    char buf[] = "ABCDE";
+    memmove(buf + 1, buf, 4);
+    puts(buf);
+    return 0;
+}
+```
+
+预期依次打印 `41 00 42` 和 `AABCD`。第二次源区域是 `buf[0..3]`，目的区域是 `buf[1..4]`，重叠部分要按移动前的内容复制。`buf[5]` 的终止符仍在原位置。
+
+**追问。memmove 为什么能处理重叠？** 它的效果相当于先把源字节保存起来，再写入目的。实际实现可以根据地址选拷贝方向。例如这个右移场景可以从后往前复制，先保住即将被覆盖的字节。
+
+**追问。拷贝一个 int 数组，第三个参数填什么？** 填元素个数乘上每个元素的字节数，例如 `count * sizeof src[0]`。如果 `src` 在函数参数里是指针，`sizeof src` 只会给出指针自身的大小。
+
+### 4. 深拷贝和浅拷贝有什么区别？
+
+**可以这样讲。** 对含指针的结构体直接赋值时，普通字段和指针值都会复制。两份结构体里的指针因此指向同一块内存，这就是这里的浅拷贝。要做深拷贝，我会为需要独立持有的数据分配空间，复制内容，再分别管理释放。
+
+下面让 `a.name` 指向一个可修改的字符数组。修改浅拷贝的第一个字符后，原对象也会变，深拷贝仍保持原来的内容。
+
+```c
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+struct Record {
+    char *name;
+};
+
+int main(void)
+{
+    char original[] = "hello";
+    struct Record a = { .name = original };
+    struct Record shallow = a;
+
+    size_t bytes = strlen(a.name) + 1;
+    struct Record deep = { .name = malloc(bytes) };
+    if (deep.name == NULL) {
+        return 1;
+    }
+    memcpy(deep.name, a.name, bytes);
+
+    shallow.name[0] = 'H';
+    printf("%s %s\n", a.name, deep.name);
+    free(deep.name);
+    return 0;
+}
+```
+
+预期输出 `Hello hello`。这里只有 `deep.name` 由 `malloc()` 分配，所以只对它调用 `free()`。指针的所有权说的是谁负责释放指向的资源。两个浅拷贝对象都释放同一块堆内存，会引发重复释放。
+
+**追问。结构体里写的是 `char name[32]` 呢？** 固定数组直接属于结构体，赋值时数组元素也跟着复制。两份结构体各有自己的数组，可以独立修改。
+
+**追问。memcpy 能做深拷贝吗？** `memcpy(&b, &a, sizeof a)` 只复制结构体本身的字节，指针值还是原地址。深拷贝时可以先为指针指向的数据分配独立空间，再用 `memcpy()` 复制那块数据。C 标准库没有适用于任意结构体的通用深拷贝接口。
+
+### 5. 字符串拷贝怎么写？标准库有哪些函数？
+
+**可以这样讲。** C 字符串用 `'\0'` 标记结尾。我逐个复制字符，最后写入终止符。调用 `strcpy()` 前，目的空间至少要有 `strlen(src) + 1` 字节。如果已知缓冲区容量，也可以用 `snprintf()` 格式化复制，并检查是否截断。
+
+这个示例实现了 `strcpy()` 的核心逻辑。源和目的区域应互不重叠，源必须是以 `'\0'` 结尾的有效字符串。
+
+```c
+#include <stdio.h>
+#include <string.h>
+
+char *my_strcpy(char *dst, const char *src)
+{
+    char *start = dst;
+    while (*src != '\0') {
+        *dst = *src;
+        ++dst;
+        ++src;
+    }
+    *dst = '\0';
+    return start;
+}
+
+int main(void)
+{
+    const char *src = "cat";
+    char dst[4];
+    if (strlen(src) >= sizeof dst) {
+        return 1;
+    }
+    puts(my_strcpy(dst, src));
+    return 0;
+}
+```
+
+预期输出 `cat`。三个可见字符加一个终止符，正好占 4 字节。`my_strcpy()` 返回目的缓冲区的起始地址。
+
+| 标准库函数 | 怎么选 |
+| --- | --- |
+| `strcpy(dst, src)` | 在 `<string.h>`。一直复制到终止符，调用者先确认目的空间足够。 |
+| `strncpy(dst, src, n)` | 在 `<string.h>`。写满 `n` 字节，源较短时补零，源长度达到或超过 `n` 时结果没有终止符。 |
+| `snprintf(dst, cap, "%s", src)` | 在 `<stdio.h>`。处理成功且 `cap > 0` 时结果会有终止符。返回值小于零表示出错，非负且大于等于 `cap` 表示输出所需空间超过容量。 |
+
+**追问。目的缓冲区不足时，怎么判断 snprintf 截断了？** 先检查返回值是否小于零，再用 `(size_t)ret >= sizeof dst` 判断。返回值表示完整输出原本需要写入的字符数，单位是字节，不计末尾的终止符。
+
+**追问。memcpy 能复制字符串吗？** 已知源是有效字符串、目的空间足够、两块区域不重叠时，可以写成 `memcpy(dst, src, strlen(src) + 1)`。多出的 1 字节用来把终止符一起复制过去。
 
 ## 源码和实测口径
 
