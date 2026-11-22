@@ -1,4 +1,4 @@
-<!-- notebook: {"version":1,"title":"GsyTrace 应用层总览 · 从一段录像读懂 M0–M7","notebook":"GsyTrace 应用层","created":"2026-11-22T12:00:00Z","updated":"2026-11-22T12:00:00Z","favorite":false,"trashed":false,"source":null} -->
+<!-- notebook: {"version":1,"title":"GsyTrace 应用层总览 · 从一段录像读懂 M0–M7","notebook":"GsyTrace 应用层","created":"2026-11-22T12:00:00Z","updated":"2026-11-22T15:25:04Z","favorite":false,"trashed":false,"source":null} -->
 
 # GsyTrace 应用层总览 · 从一段录像读懂 M0–M7
 
@@ -26,6 +26,72 @@
 
 `JSON` 是 JavaScript Object Notation，一种可供程序和人阅读的数据格式。`JSONL` 是 JSON Lines，每行放一条独立的 JSON 记录。打开清单时可以先读懂一行，再看程序怎样一行一行处理。
 
+## 从采集、控制到上报如何设计
+
+[![GsyTrace 单次录制架构图。小屏通过本机套接字控制录制，声画经有界队列写入 SD，完成后上报清单，Hub 提交数据库后回执](assets/gsytrace/capture-control-report.png)](assets/gsytrace/capture-control-report.png)
+
+沿着一次录制看，先有**控制命令**，接着有**音视频数据**，收尾后才有**会话上报**。图里的 SD 卡也是两段流程的交接点。录制程序在这里交出一份已经收尾的目录，上报程序再从这里读清单。
+
+### 1. 点「开始」以后，谁真的开始录？
+
+在 `m2/ui/main.c`，`lv_obj_add_event_cb()` 把小屏按钮的点击接到 `start_clicked()` 或 `stop_clicked()`。回调通过 `ui_recorder_submit()` 交给工作线程。工作线程用 `socket(AF_UNIX, SOCK_STREAM, 0)` 打开 Unix 域套接字，通过 `connect()` 连接 `/tmp/gsytrace-m2/rec.sock`，再用 `control_write_line()` 和 `control_read_line()` 收发一行 JSON。你可以把这个 socket 路径当成**同一块板上两个程序约好交接命令的地址**。命令行工具 `m2-ctl` 也走这个入口，因此小屏和命令行共用一套控制逻辑。
+
+`m2/control_server.c` 的 `control_serve()` 监听这个地址。收到 `start` 时，它先检查当前是 `IDLE`（空闲），再用 `fork()` 和 `execl()` 启动 `m2-recorder record` 子进程。这时是 `STARTING`（启动中）。等摄像头和声卡都准备好，子进程才写出开始日志，服务随后将状态更新为 `RECORDING`（录制中）。小屏通过工作线程定期查询 `status`，显示状态和时长。套接字收发在工作线程里，界面可以继续响应触摸。
+
+### 2. 摄像头和麦克风怎样一边采集，一边写卡？
+
+`m2/recorder.c` 启动视频和声音两路采集线程。两路都通过 `recorder_wait_start()` 报告就绪，主线程用 `clock_gettime(CLOCK_MONOTONIC, ...)` 取得共同的会话起点，再让两路开始采集。单调时钟适合算这一轮经过了多久。具体哪一帧、哪一个声音样本处在录制的哪一刻，还要用各自的采集时间戳和样本数来定位。
+
+| 从哪里读代码 | 关键 API（Application Programming Interface，应用程序接口）怎么接 |
+|---|---|
+| `m2/video_capture.c` | `RK_MPI_VENC_GetStream()` 从 VENC（Video Encoder，视频编码器）借到 H.264 编码包，`RK_MPI_MB_Handle2VirAddr()` 拿到可读地址。采集线程先用 `memcpy()` 复制数据，再用 `RK_MPI_VENC_ReleaseStream()` 归还原缓冲，再用 `video_queue_try_push()` 把副本交给队列。写盘线程通过 `video_queue_pop()` 拿到副本，交给 `mp4_segmenter_packet()`。 |
+| `m2/audio_capture.c` | `snd_pcm_readi()` 从 ALSA（Advanced Linux Sound Architecture，Linux 声音架构）读取声音。返回值按采样帧计数。在本板的双声道交错输入中，一帧包含左右两个采样值。采集线程选出配置的声道入队，写盘线程通过 `wav_segmenter_write()` 写 WAV。 |
+| `m2/session_store.c` | 封好的片段由 `session_store_submit()` 交给后台任务算摘要并登记清单。 |
+
+封装时，`m2/mp4_segmenter.c` 等到可独立解码的关键帧再切 MP4，`m2/wav_segmenter.c` 按采样数切 WAV。
+
+队列像接力时的交接区。采集线程尽快把数据递出去，写盘遇到短时抖动时可以先消耗队列空间。视频队列同时限制 **64 个包和 4 MiB**，任一上限都会生效。超过上限时，这次录制报错收尾，避免悄悄丢包后还把会话标成成功。
+
+点「结束」时，控制服务向录制子进程发送 `SIGINT`（和终端 Ctrl+C 一样的中断信号），状态进入 `STOPPING`（收尾中）。两路停止取新数据，关闭队列并等写盘线程把剩余数据写完。主线程通过 `pthread_join()` 等两路退出，`session_store_finish()` 再等后台清单任务收尾。两路成功、存储收尾也成功时，会话才写成 `complete`。界面回到 `IDLE` 后，通过 `last_session_id`、`error` 和对应目录的 `session.json` 核对这次录制。[查看 M2 的线程、时间轴和状态机](#note/notes%2Fgsytrace-m2.md)
+
+### 3. 文件存好之后，怎么上报？断网怎么办？
+
+`m3/edge_sync.cpp` 的 `m3-sync --watch` 是单独运行的上报进程。它用 `load_catalog()` 读 SD 卡上已经 `complete` 的会话，经 WebSocket 的 `/sync` 完成 `hello` 和 `hello_ack` 握手，再发 `manifest.put`。这条上报消息带有会话标识，以及每个分片的文件名、起止时间、大小和 SHA-256 摘要。断网时，本地录制照常收尾。上报进程等待后重试，网络恢复就可以补交。
+
+RK3576 上，`m3/hub.py` 的 `receive_manifest()` 校验消息，调用 `m3/store.py` 的 `store_manifest()`。会话和分片写进同一笔 SQLite 事务，`commit()` 成功后才发送 `manifest.ack`。ACK（Acknowledgement）就是确认回执。即使 Hub 存好了、回执却在路上丢了，RV1106 也可以重发。Hub 用 `(device_id, session_id)` 找原记录并核对内容。重复提交相同内容会返回 `already_present`，同一标识提交不同内容会报冲突。
+
+要做回放或分析时，Hub 再走 `/originals` 要指定的 MP4 或 WAV。接收方把原片分块存到 `.part` 临时文件，连接断开后用已写入的字节长度续传。收齐核对大小和 SHA-256 后，用 `os.replace()` 切换为正式文件名，再确认原片可用。因此查到一份会话和拿到那份原片，是两次可分别验证的交接。[查看 M3 的清单回执与原片续传](#note/notes%2Fgsytrace-m3.md)
+
+### 面试口述版
+
+> 这个项目有 RV1106 采集端和 RK3576 Hub。我在 RV1106 上把录制、控制和同步拆开。小屏和命令行通过 Unix 域套接字发开始、结束和状态查询，录制服务用子进程管理这一次录制。视频和麦克风两路准备好后一起开始。视频从 VENC 取编码包，先复制，再归还缓冲区，然后交给有界队列，声音也走自己的队列和写盘线程。按停止后要把队列排空，等文件和清单都收尾，才把这次会话标为完成。上报进程只扫描已完成的会话，网络断开时录制文件还在 SD 卡。Hub 把清单写进 SQLite 并提交后才回确认，重复的同一份清单只保留一份。真正需要回放时再取原片，中途断开可以从已保存的字节位置继续。
+
+### 常见追问
+
+**为什么不能把 VENC 的指针直接塞进队列？**
+
+`ReleaseStream()` 会把原缓冲还给编码器，编码器随后可能拿它写下一帧。写盘线程用得晚，直接保存指针就可能读到被复用的数据。复制出来的副本由应用持有，写完再释放。
+
+**SD 卡写不过来会怎样？**
+
+先用有界队列吸收短时间的写入波动。视频队列同时限制包数和总字节数，避免少量大包占掉太多内存。队列满时，程序记录错误并停止本次录制，验收时查会话状态和录制日志。
+
+**两个线程一起开始，声画怎么对齐？**
+
+共同起点让两路的时间能换算为「录制开始后多少秒」。每帧还保留 PTS（Presentation Time Stamp，显示时间戳），音频用首段采样位置和累计样本数推进。视频和音频的分片边界会错开，所以按时间范围匹配两个轨道。
+
+**界面显示开始成功，或已经回到空闲，能证明文件保存了吗？**
+
+`STARTING` 说明服务接受了命令，`RECORDING` 说明采集已启动。结束后查看 `last_session_id`、`error` 和 `complete`，再检查分片能否独立解码、清单里的大小与摘要能否对上。
+
+**为什么要写数据库之后才回 ACK？回执丢了怎么办？**
+
+ACK 要证明会话和分片已经一起提交。回执丢了就重发，Hub 核对同一会话的内容并返回 `already_present`。面试中可以用「重复两次，再重启 Hub 查询」说明自己怎样核对幂等，也就是重复操作后落库结果仍相同。
+
+**怎样证明断网补报和原片续传都有效？**
+
+用两次独立的试验。第一次在录制中断开 Wi-Fi，核对 SD 卡正常收尾，恢复网络后出现同一会话的上报确认。第二次在传原片时中断连接，核对下一次请求是否使用非零字节偏移，并在收齐后对照清单验大小和 SHA-256。
+
 ## 从最小程序走到双板发布
 
 [![M0 到 M7 验收路线。由独立上板、单路采集、两路录制、同步、复盘、图注、回放走到发布回滚](assets/gsytrace/roadmap.png)](assets/gsytrace/roadmap.png)
@@ -41,7 +107,7 @@
 | [M6 · 小屏原声回放与跳转](#note/notes%2Fgsytrace-m6.md) | 有原片缓存和临时取片两种情况下都能回放。拖动之后能找到对应的原片画面。 |
 | [M7 · 交付、安装和回滚](#note/notes%2Fgsytrace-m7.md) | 从干净检出构建的双板包摘要一致。在实板回滚再恢复后能打开同一段回放。 |
 
-不熟悉 Linux 时从 M0 一路读下来。如果已经能交叉编译，可以先从感兴趣的一篇切入。想补项目面试，先看本页两张图，然后打开那一阶段的「常见面试问法」和「验收」。回答时能讲出一个函数、一条日志和一次复测，比复述一串缩写更容易让对方跟上。
+不熟悉 Linux 时从 M0 一路读下来。如果已经能交叉编译，可以先从感兴趣的一篇切入。想补项目面试，先看本页的架构图和验收路线，然后打开那一阶段的「常见面试问法」和「验收」。回答时能讲出一个函数、一条日志和一次复测，比复述一串缩写更容易让对方跟上。
 
 ## 容易混淆的几组词
 
