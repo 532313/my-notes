@@ -68,7 +68,8 @@
     const titles={home:'全部内容',recent:'最近访问',favorites:'收藏',drafts:'本机草稿',trash:'回收站'};
     $('viewTitle').textContent=titles[currentRoute]||currentRoute.slice(9);$('headerContext').textContent=$('viewTitle').textContent;
     $('viewSubtitle').textContent=trashed?'可恢复文档，或永久删除不再需要的内容。':currentRoute==='drafts'?'草稿只在当前设备保存，发布后才会同步。':'阅读资料，也留下自己的理解。';
-    document.querySelector('.guide-feature').hidden=!(currentRoute==='home'||currentRoute==='recent')||!!search;
+    $('driverGuideFeature').hidden=!!search||!(currentRoute==='home'||currentRoute==='recent');
+    $('course5710Feature').hidden=!!search||!(currentRoute==='home'||currentRoute==='notebook/5710');
     $('documentCount').textContent=items.length+' 条内容';
     visibleDocIds=items.map(d=>d.id);selectedIds=new Set([...selectedIds].filter(id=>visibleDocIds.includes(id)));if(search)selectedIds.clear();
     $('documentList').innerHTML=items.map(d=>{const href=d.type==='pdf'?pdfHash(d.id):noteHash(d.id),title=d.title||'未命名文档';const snippet=d.type==='pdf'?'PDF 参考资料':(d.body||'').replace(/[#*`>\[\]]/g,'').replace(/\s+/g,' ').slice(0,90)||'还没有正文';
