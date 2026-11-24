@@ -1,4 +1,10 @@
-<!-- notebook: {"version":1,"title":"5710 讲义目录","notebook":"5710","created":"2026-11-24T07:08:38.291Z","updated":"2026-11-24T07:08:38.291Z","favorite":false,"trashed":false,"source":null} -->
+<!-- notebook: {"version":1,"title":"5710 讲义目录","notebook":"5710","created":"2026-11-24T07:08:38.291Z","updated":"2026-11-24T08:21:06Z","favorite":false,"trashed":false,"source":null} -->
+
+## 5710 双语讲义
+
+12 讲中英对照，含算例、英文术语和可展开的自测答案。高频考点附五份 IERG4150 旧卷的年份、题号与 PDF 页码。
+
+[阅读双语讲义（L00–L11）](https://532313.github.io/my-notes/5710/) · [查看高频考点](https://532313.github.io/my-notes/5710/exam.html)
 
 IEMS5710A《密码学、信息安全与隐私》2026–27 第一学期中文学习笔记。每讲按原讲义顺序编排，在关键概念处用粗体标出英文术语或缩写。括号里的页码对应原 PDF，可用网站搜索直接查 **HMAC**、**X.509**、**SameSite** 等词。
 
