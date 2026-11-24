@@ -1,0 +1,121 @@
+<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>L04 哈希、消息认证与口令 · IEMS5710A</title><link rel="stylesheet" href="reader.css"></head><body><header class="top"><nav aria-label="课程导航"><a href="index.html">5710 双语讲义</a><a href="exam.html">高频考点</a><span class="current">L04 哈希、消息认证与口令</span></nav></header><main><header class="hero"><p class="eyebrow">IEMS5710A · L04</p><h1>哈希、消息认证与口令</h1><p class="en-heading" lang="en">Hashing, message authentication and passwords</p><div class="intro"><div class="pair-row"><div class="cell" lang="zh-CN"><p>下载文件、检查消息和验证密码都可能用到哈希。三者要保护的东西不同。先问 <strong>摘要由谁提供</strong>、<strong>有没有秘密密钥</strong>，以及 <strong>输入能不能轻易猜到</strong>。</p>
+</div><div class="cell english" lang="en"><p>File downloads, message verification and password checks can all use hashing. They protect different things. Ask <strong>who supplied the digest</strong>, <strong>whether there is a secret key</strong>, and <strong>how hard the input is to guess</strong>.</p>
+</div></div></div><p class="meta-text">本学期配套练习 / Current homework · <span class="source-ref" title="IEMS5710HW2.pdf">HW2 Q1–3</span></p></header><details class="jump" open><summary>本讲目录 / In this lecture</summary><nav aria-label="本讲目录"><ul><li><a href="#properties">三种哈希性质与构造判断</a></li><li><a href="#birthday">生日概率与固定目标</a></li><li><a href="#mac">从摘要到 MAC 与 HMAC</a></li><li><a href="#aead">GCM 如何同时保护正文和包头</a></li><li><a href="#passwords">盐、口令派生与一次性口令</a></li><li><a href="#self-check">自测</a></li></ul></nav></details><div class="language-header"><span>中文讲解</span><span lang="en">English explanation</span></div><section class="lesson-section" id="properties"><header class="section-head"><h2>三种哈希性质与构造判断</h2><p class="en-heading" lang="en">Three hash properties and how to assess a construction</p></header><aside class="exam-callout" aria-label="旧卷高频考点"><span class="exam-badge">高频 · 3/5</span><a href="exam.html#hash">哈希性质与构造判断</a><p lang="en">Hash properties and constructions</p><ul class="evidence" aria-label="出现题号"><li><span class="source-ref" title="IERG4150_2023.pdf">2023–24 Q3 <small class="source-page">(PDF p. 9)</small></span></li><li><span class="source-ref" title="IERG4150_2024.pdf">2024–25 Q3 <small class="source-page">(PDF p. 5)</small></span></li><li><span class="source-ref" title="IERG4150_2025.pdf">2025–26 Q3 <small class="source-page">(PDF p. 6)</small></span></li></ul></aside><div class="pair-row"><div class="cell" lang="zh-CN"><p><strong>哈希函数（Hash Function）</strong> 将变长消息 M 映射成固定长度的 <strong>摘要（Digest）</strong> H(M)。由于输入比输出多，碰撞必然存在。安全讨论的是在给定能力下能不能有效找到。</p>
+</div><div class="cell english" lang="en"><p>A <strong>hash function</strong> maps a variable-length message M to a fixed-length <strong>digest</strong> H(M). More inputs than outputs guarantee some collisions. Security asks whether the specified adversary can find them efficiently.</p>
+</div></div><div class="pair-row"><div class="cell" lang="zh-CN"><div class="table-wrap"><table>
+<thead>
+<tr>
+<th>题目先固定什么</th>
+<th>要找什么</th>
+<th>英文术语</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>摘要 y</td>
+<td>任意 x 使 H(x)=y</td>
+<td><strong>Preimage Resistance</strong> 原像抗性</td>
+</tr>
+<tr>
+<td>一条消息 x</td>
+<td>不同的 x′ 使 H(x′)=H(x)</td>
+<td><strong>Second-Preimage Resistance</strong> 第二原像抗性</td>
+</tr>
+<tr>
+<td>无，两条都可选</td>
+<td>找到任意不同的 x、x′ 得到同一摘要</td>
+<td><strong>Collision Resistance</strong> 碰撞抗性</td>
+</tr>
+</tbody></table></div>
+</div><div class="cell english" lang="en"><div class="table-wrap"><table>
+<thead>
+<tr>
+<th>What is fixed?</th>
+<th>What must be found?</th>
+<th>Property</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>A digest y</td>
+<td>Any x with H(x)=y</td>
+<td><strong>Preimage resistance</strong></td>
+</tr>
+<tr>
+<td>One message x</td>
+<td>A different x′ with H(x′)=H(x)</td>
+<td><strong>Second-preimage resistance</strong></td>
+</tr>
+<tr>
+<td>Neither message</td>
+<td>Any distinct x and x′ with equal digests</td>
+<td><strong>Collision resistance</strong></td>
+</tr>
+</tbody></table></div>
+</div></div><div class="pair-row"><div class="cell" lang="zh-CN"><p><strong>判断构造的习惯</strong>。先圈出攻击者能选什么，再用条件构造反例或归约。例如 H(x‖y)=x 直接丢掉 y，同一个 x 搭配任何不同的 y 都有同一摘要。将两个摘要串接时，得到组合碰撞意味着两部分都碰撞。直接异或则可能发生抵消，例如 H(x)⊕H(x) 恒为零。知道两个函数各自有好性质，还要检查组合方式。</p>
+</div><div class="cell english" lang="en"><p><strong>How to assess a construction.</strong> Identify what the adversary can choose, then look for a counterexample or a reduction. H(x‖y)=x ignores y, so different y values paired with the same x have equal digests. For concatenated digests, a collision in the combination requires a collision in both components. With XOR there can be cancellation, as H(x)⊕H(x) is always zero. Component guarantees need to be checked against the composition.</p>
+</div></div><div class="pair-row"><div class="cell" lang="zh-CN"><p>MD5、SHA-1 的碰撞抗性已失效。讲义用 SHA-2 和 SHA-3 比较后续设计。图中的 <strong>Merkle–Damgård</strong> 构造将消息填充并分块，每块用 <strong>压缩函数（Compression Function）</strong> 更新 <strong>链式状态（Chaining State）</strong>。刷新的状态传向下一块，末尾按算法定义输出摘要。计算摘要时，同样的读音或显示并不保证同样的输入字节，例如末尾换行会改变结果。</p>
+</div><div class="cell english" lang="en"><p>MD5 and SHA-1 lost their collision resistance. The slides compare later SHA-2 and SHA-3 designs. In the <strong>Merkle–Damgård</strong> construction, a padded message is divided into blocks, and a <strong>compression function</strong> updates the <strong>chaining state</strong> at each step. The state passes to the next block and the algorithm derives a digest at the end. Hashing operates on exact bytes, so a final newline can change a result even when the displayed text looks the same.</p>
+</div></div><p class="source">原讲义 / Slides · <span class="source-ref" title="lec4_hash.pdf">第 2–15 页</span></p></section><section class="lesson-section" id="birthday"><header class="section-head"><h2>生日概率与固定目标</h2><p class="en-heading" lang="en">Birthday probabilities and fixed targets</p></header><div class="pair-row"><div class="cell" lang="zh-CN"><p><strong>先算填充字节</strong>。9 字节消息在 SHA-256 中先加一个 0x80，再加 46 个 0 字节，到第 56 字节后追加 8 字节的大端长度字段。原长度 72 比特写入这个字段。总计 9+1+46+8=64 字节。填充以原长度计算，最后一个字段用比特数。</p>
+</div><div class="cell english" lang="en"><p><strong>Padding calculation.</strong> For a nine-byte message, SHA-256 adds 0x80 followed by 46 zero bytes, then appends an eight-byte big-endian length field after 56 bytes. Encode the original 72 bits in that field. The total is 9+1+46+8=64 bytes. The length field counts original bits.</p>
+</div></div><div class="pair-row"><div class="cell" lang="zh-CN"><p>对理想 n 位哈希，输出空间大小 N=2ⁿ。k 条不同消息能组成 k(k−1)/2 对。某一对摘要相同的概率为 1/N。要估计「至少出现一对」，可以先算没有碰撞，再取补集。</p>
+</div><div class="cell english" lang="en"><p>For an ideal n-bit hash, the output space has size N=2ⁿ. There are k(k−1)/2 pairs among k distinct inputs, and one specified pair matches with probability 1/N. To estimate at least one collision, start from the probability of none and take the complement.</p>
+</div></div><div class="pair-row"><div class="cell" lang="zh-CN"><blockquote>
+<p><strong>生日近似（Birthday Approximation）</strong>　P(至少一次碰撞) ≈ 1−exp(−k(k−1)/(2N))。</p>
+</blockquote>
+</div><div class="cell english" lang="en"><blockquote>
+<p><strong>Birthday approximation</strong>　P(at least one collision) ≈ 1−exp(−k(k−1)/(2N)).</p>
+</blockquote>
+</div></div><div class="pair-row"><div class="cell" lang="zh-CN"><p><strong>算例</strong>。n=32、k=10,000 时有 49,995,000 对，N=4,294,967,296。代入得到约 <strong>1.16%</strong>。令概率为 0.5，则 k 约为 √(2N ln 2)，也就是约 <strong>7.7 万</strong>。因此通用碰撞工作量是 2^(n/2) 量级。若给定一个固定摘要，k 次尝试只和这一个目标比较，单次成功率是 1/N，平均要试 N 次。这就是 HW2 Q1 为什么把两种概率分开问。</p>
+</div><div class="cell english" lang="en"><p><strong>Worked example.</strong> With n=32 and k=10,000, there are 49,995,000 pairs and N=4,294,967,296. The probability is about <strong>1.16%</strong>. Setting it to 0.5 gives k≈√(2N ln 2), about <strong>77,000</strong> candidates. Generic collision search therefore takes on the order of 2^(n/2) trials. Given a fixed target digest, each candidate is compared against just that target. Its probability is 1/N per trial and the mean is N trials. HW2 Q1 asks about these as separate problems.</p>
+</div></div><div class="pair-row"><div class="cell" lang="zh-CN"><p><strong>长度扩展（Length Extension）</strong> 涉及部分迭代哈希的摘要与末尾状态有直接关系。它与「找到两条相同摘要的消息」不同。把秘密和消息直接拼接后哈希来充当认证标签，可能破坏预期安全性。用标准 MAC 避免自制结构。</p>
+</div><div class="cell english" lang="en"><p><strong>Length extension</strong> concerns iterative hash designs whose digest exposes information directly related to the final state. This is a different property from finding two messages with equal digests. Hashing a concatenation of a secret and message to make an authentication tag can fail to provide the intended security. Use an established MAC construction.</p>
+</div></div><p class="source">原讲义 / Slides · <span class="source-ref" title="lec4_hash.pdf">第 16–25 页</span></p></section><section class="lesson-section" id="mac"><header class="section-head"><h2>从摘要到 MAC 与 HMAC</h2><p class="en-heading" lang="en">From digests to MACs and HMAC</p></header><aside class="exam-callout" aria-label="旧卷高频考点"><span class="exam-badge">高频 · 3/5</span><a href="exam.html#mac">MAC 设计与加密组合</a><p lang="en">MAC design and combinations with encryption</p><ul class="evidence" aria-label="出现题号"><li><span class="source-ref" title="IERG4150_2021.pdf">2021–22 Q5 <small class="source-page">(PDF p. 6)</small></span></li><li><span class="source-ref" title="IERG4150_2022.pdf">2022–23 Q3 <small class="source-page">(PDF p. 5)</small></span></li><li><span class="source-ref" title="IERG4150_2024.pdf">2024–25 Q2(c–d) <small class="source-page">(PDF p. 4)</small></span></li></ul></aside><div class="pair-row"><div class="cell" lang="zh-CN"><p>如果网页提供的摘要本身可信，可以重算下载文件的哈希来查错。旁观者若能同时改文件与摘要，这种比较就缺少可信来源。<strong>消息认证码（Message Authentication Code, MAC）</strong> 加入一把共享密钥。发送者算标签，接收者用同一密钥验证收到的消息和标签。标签没有把消息内容变成密文。</p>
+</div><div class="cell english" lang="en"><p>If a reference digest is trustworthy, recomputing it detects a changed file. An adversary who can replace both the file and digest defeats that source check. A <strong>message authentication code (MAC)</strong> adds a shared key. The sender computes a tag and the receiver uses the same key to verify the message and tag. The tag leaves the message content readable.</p>
+</div></div><div class="pair-row"><div class="cell" lang="zh-CN"><p><strong>CBC-MAC</strong> 将块串起来，最后的结果充当标签。基础构造的安全论证需要固定的消息长度。处理变长消息要采用设计好的方案，不能直接沿用假设。做旧卷里的组合题时，先分清标签保护 <strong>明文还是密文</strong>，再问 <strong>接收者什么时候验证</strong>。</p>
+</div><div class="cell english" lang="en"><p><strong>CBC-MAC</strong> chains blocks and uses the final result as a tag. The basic construction&#39;s security argument assumes a fixed message length. Processing variable lengths requires a scheme designed for that purpose. In past-paper questions combining encryption and authentication, identify <strong>plaintext or ciphertext as the tag input</strong> and <strong>when the receiver verifies it</strong>.</p>
+</div></div><div class="pair-row"><div class="cell" lang="zh-CN"><p><strong>组合例子</strong>。先加密后认证（<strong>Encrypt-then-MAC</strong>）让接收者先验证密文及所需的 IV、头部等，再决定是否解密。采用独立密钥，并确保标签覆盖的编码没有歧义。若加密的同时给明文另算确定性标签，重复标签可能暴露两条消息相同。仅从「一个安全加密器加一个安全 MAC」无法判断整个组合，数据的绑定和验证顺序也要适配。</p>
+</div><div class="cell english" lang="en"><p><strong>Composition example.</strong> With <strong>encrypt-then-MAC</strong>, the receiver checks a tag over the ciphertext and required inputs such as the IV and header before deciding whether to decrypt. Use independent keys and an unambiguous authenticated encoding. A separate deterministic tag on the plaintext can leak message equality even with randomized encryption. Check what the composition binds and when it verifies, in addition to the security of its components.</p>
+</div></div><div class="pair-row"><div class="cell" lang="zh-CN"><p><strong>HMAC</strong> 让哈希处理两次带密钥的输入。记 K′ 为规整到哈希分组长度的密钥。内层用 K′⊕ipad，再连接消息 M。外层用 K′⊕opad，再连接内层摘要。ipad 为重复的 0x36，opad 为重复的 0x5c，字节数均为哈希分组大小。</p>
+</div><div class="cell english" lang="en"><p><strong>HMAC</strong> hashes two keyed inputs. Let K′ be the key normalized to the hash block size. The inner input begins with K′⊕ipad and continues with M. The outer input begins with K′⊕opad and continues with the inner digest. The pads are block-length repetitions of 0x36 and 0x5c, respectively.</p>
+</div></div><div class="pair-row"><div class="cell" lang="zh-CN"><blockquote>
+<p>HMAC(K,M) = H((K′⊕opad) ‖ H((K′⊕ipad) ‖ M))。</p>
+</blockquote>
+</div><div class="cell english" lang="en"><blockquote>
+<p>HMAC(K,M) = H((K′⊕opad) ‖ H((K′⊕ipad) ‖ M)).</p>
+</blockquote>
+</div></div><div class="pair-row"><div class="cell" lang="zh-CN"><p>MAC 能判断消息来自持有共享密钥的一方。第三方需要用公钥验证归属时，应使用 <strong>数字签名（Digital Signature）</strong>。普通哈希、MAC 与签名的区别可以从「谁需要秘密、谁能验证」推出。</p>
+</div><div class="cell english" lang="en"><p>A MAC attributes a message to a holder of the shared secret. For public verification, use a <strong>digital signature</strong>. Compare a hash, a MAC and a signature by asking who needs a secret and who can verify.</p>
+</div></div><p class="source">原讲义 / Slides · <span class="source-ref" title="lec4_hash.pdf">第 26–38 页</span></p></section><section class="lesson-section" id="aead"><header class="section-head"><h2>GCM 如何同时保护正文和包头</h2><p class="en-heading" lang="en">How GCM protects plaintext and associated data</p></header><div class="pair-row"><div class="cell" lang="zh-CN"><p><strong>认证加密（Authenticated Encryption）</strong> 同时要求保密性和完整性。带附加数据的版本简称 <strong>AEAD</strong>。在 <strong>GCM（Galois/Counter Mode）</strong> 中，CTR 加密正文，GHASH 参与计算标签。<strong>关联数据（Associated Data, AAD）</strong> 可以是接收方需要直接读取的协议头。它保持可见，但标签验证会覆盖它。</p>
+</div><div class="cell english" lang="en"><p><strong>Authenticated encryption</strong> provides confidentiality and integrity. The form with associated data is called <strong>AEAD</strong>. In <strong>GCM (Galois/Counter Mode)</strong>, CTR encrypts the data and GHASH contributes to the tag. <strong>Associated data (AAD)</strong> can be a protocol header that the receiver needs to read directly. It remains visible and is covered by verification.</p>
+</div></div><div class="pair-row"><div class="cell" lang="zh-CN"><p>例子。某记录的正文是消息，头部是版本和编号。攻击者改版本号，即使密文没动也应该验签失败。接收方只在 AEAD 验证通过后使用明文。同一密钥下要保持 GCM nonce 唯一。<strong>GMAC</strong> 则使用相关机制进行仅认证的操作。</p>
+</div><div class="cell english" lang="en"><p>Example. A record carries the message as ciphertext and a version and sequence number as a header. If the version is changed, verification should fail even if the ciphertext stays the same. Use plaintext only after successful AEAD verification. GCM also requires nonce uniqueness under a key. <strong>GMAC</strong> uses the related mechanism for authentication without encryption.</p>
+</div></div><p class="source">原讲义 / Slides · <span class="source-ref" title="lec4_hash.pdf">第 35–41 页</span></p></section><section class="lesson-section" id="passwords"><header class="section-head"><h2>盐、口令派生与一次性口令</h2><p class="en-heading" lang="en">Salts, password derivation and one-time passwords</p></header><div class="pair-row"><div class="cell" lang="zh-CN"><p>口令的输入空间往往远小于哈希输出空间。<strong>字典猜测（Dictionary Attack）</strong> 会先试常见词及变体。验证系统通常只保存认证所需的口令派生记录。在 Linux 中，账号基本信息可放在 /etc/passwd，口令验证记录放在访问受限的 /etc/shadow。</p>
+</div><div class="cell english" lang="en"><p>Passwords often occupy a far smaller input space than the hash output space. A <strong>dictionary attack</strong> prioritizes common words and variations. A password verifier stores the record needed to check a candidate. A Linux-style system can keep public account information in /etc/passwd and access-restricted verification records in /etc/shadow.</p>
+</div></div><div class="pair-row"><div class="cell" lang="zh-CN"><p><strong>盐（Salt）</strong> 是每账户的公开随机值。同一密码因盐不同而产生不同的记录。一笔猜测一般要为每个盐分别计算，限制批量复用和 <strong>彩虹表（Rainbow Table）</strong> 等预计算。<strong>口令派生函数（Password-Based Key Derivation Function, PBKDF）</strong> 另外增加每次计算的成本。盐和单次成本分别对应两种机制。</p>
+</div><div class="cell english" lang="en"><p>A <strong>salt</strong> is a public random value per account. Equal passwords generate different records under distinct salts. A candidate generally needs a separate computation per salt, limiting bulk reuse and precomputation such as <strong>rainbow tables</strong>. A <strong>password-based key derivation function (PBKDF)</strong> also increases the cost of each attempt. Salt and per-attempt cost serve different purposes.</p>
+</div></div><div class="pair-row"><div class="cell" lang="zh-CN"><p><strong>HW2 Q3 算法</strong>。假设一百万个候选口令、一万个账户，按题目简化每个候选一次计算。无盐时全库可以复用约 10⁶ 次计算。有独立盐时约需 10⁶×10⁴=10¹⁰ 次。快哈希速率 10⁸ 次/秒时分别为 0.01 秒和 100 秒。如果是独立盐和 2×10⁴ 次/秒的慢验证，全库约为 500,000 秒。若只针对一个账户，加盐后仍只试一百万个候选，所以还要靠强口令和高成本函数。</p>
+</div><div class="cell english" lang="en"><p><strong>HW2 Q3 calculation.</strong> Take one million candidates and ten thousand accounts. In the exercise model, one candidate requires one evaluation. Without salts, about 10⁶ evaluations cover the database. Independent salts require about 10⁶×10⁴=10¹⁰ evaluations. At 10⁸ fast hashes per second the times are 0.01 and 100 seconds. With independent salts and 2×10⁴ slower verifications per second, the whole database takes 500,000 seconds. One targeted account still involves only a million candidates, so password strength and the cost per evaluation remain important.</p>
+</div></div><div class="pair-row"><div class="cell" lang="zh-CN"><p>讲义也比较了两类历史 Windows 记录。LM 哈希先大写再分段，等于主动丢掉一些搜索难度。NT 哈希使用 MD4 并保留大小写，讲义据此引出 NTLM 的挑战–响应。复习时把「验证记录如何生成」和「登录时是否直接发送口令」分开。</p>
+</div><div class="cell english" lang="en"><p>The slides also compare two historical Windows records. LM hashes uppercase and split a password, losing some search difficulty. The NT hash uses MD4 and keeps case, which leads into NTLM challenge–response. Keep storage of verification records separate from what a login protocol sends.</p>
+</div></div><div class="pair-row"><div class="cell" lang="zh-CN"><p><strong>S/KEY</strong> 是哈希链的一次性口令（<strong>One-Time Password, OTP</strong>）。设 x₂=H(x₁)、x₃=H(x₂)，服务器先存 x₃。首次发送 x₂，服务器计算 H(x₂) 并与 x₃ 比较，成功后改存 x₂。下次发送 x₁。重放 x₂ 会被拒，观察到 x₂ 也难反推出 x₁。链耗尽后要安全重置。讲义的 SecurID 示例改用令牌和服务器共享时间窗口。</p>
+</div><div class="cell english" lang="en"><p><strong>S/KEY</strong> is a hash-chain <strong>one-time password (OTP)</strong>. Let x₂=H(x₁) and x₃=H(x₂). The server starts with x₃. The client sends x₂ on the first login. The server verifies H(x₂) against x₃, then stores x₂. Next the client sends x₁. Replay of x₂ fails, and learning x₂ does not make its preimage x₁ easy to recover. Reinitialize the chain when exhausted. The SecurID example instead illustrates a token and server using a shared time window.</p>
+</div></div><p class="source">原讲义 / Slides · <span class="source-ref" title="lec4_hash.pdf">第 42–63 页</span></p></section><section class="quiz" id="self-check"><header class="section-head"><h2>合上讲义自测</h2><p class="en-heading" lang="en">Check your understanding</p></header><div class="pair-row"><div class="cell" lang="zh-CN"><ol>
+<li>给出一份指定的数字签名文件，另找同摘要的文件。考查哈希的哪项性质？</li>
+<li>为什么 n 位哈希的固定目标和任意碰撞不能用同样的工作量估计？</li>
+<li>GCM 的附加数据有哪两项安全性质？若标签验证失败该怎样处理？</li>
+</ol>
+</div><div class="cell english" lang="en"><ol>
+<li>You have a specified signed file and seek another with its digest. Which hash property is relevant?</li>
+<li>Why do a fixed target and an arbitrary collision have different costs for an n-bit hash?</li>
+<li>Which protections apply to GCM&#39;s associated data, and what should happen on verification failure?</li>
+</ol>
+</div></div><details><summary>查看答案 / Show answers</summary><div class="pair-row"><div class="cell" lang="zh-CN"><ol>
+<li>第二原像抗性。目标文件已经指定。</li>
+<li>固定目标有 k 次候选对目标比较。任意碰撞在 k 个不同候选中有约 k²/2 个候选对。</li>
+<li>在正确用密钥和 nonce 时，附加数据受完整性与认证保护，内容仍可见。验证失败时拒绝使用该条记录的解密数据。</li>
+</ol>
+</div><div class="cell english" lang="en"><ol>
+<li>Second-preimage resistance. The target file was specified.</li>
+<li>A fixed target is compared k times. Arbitrary collision search gets about k²/2 pairs among k distinct candidates.</li>
+<li>With proper keys and nonces, associated data is authenticated and integrity-protected while visible. Reject the record and do not use its plaintext on failure.</li>
+</ol>
+</div></div></details></section><nav class="bottom" aria-label="讲次切换"><a href="l03.html">上一讲 · L03</a><a href="index.html">返回目录</a><a href="l05.html">下一讲 · L05</a></nav></main></body></html>

@@ -1,0 +1,167 @@
+<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>L06 数字证书与公钥基础设施 · IEMS5710A</title><link rel="stylesheet" href="reader.css"></head><body><header class="top"><nav aria-label="课程导航"><a href="index.html">5710 双语讲义</a><a href="exam.html">高频考点</a><span class="current">L06 数字证书与公钥基础设施</span></nav></header><main><header class="hero"><p class="eyebrow">IEMS5710A · L06</p><h1>数字证书与公钥基础设施</h1><p class="en-heading" lang="en">Digital certificates and public-key infrastructure</p><div class="intro"><div class="pair-row"><div class="cell" lang="zh-CN"><p>把「算得出共享密钥」和「知道对方是谁」分成两件事。证书将身份与公钥绑定。你还要验证谁有权签发、证书现在能不能用，以及对端是否持有相应私钥。</p>
+</div><div class="cell english" lang="en"><p>Establishing a shared key and knowing who is on the other end are separate tasks. A certificate binds an identity to a public key. Check who can issue it, whether it can be used now, and whether the peer holds the corresponding private key.</p>
+</div></div></div><p class="meta-text">本学期配套练习 / Current homework · <span class="source-ref" title="IEMS5710HW2.pdf">HW2 Q6</span></p></header><details class="jump" open><summary>本讲目录 / In this lecture</summary><nav aria-label="本讲目录"><ul><li><a href="#authdh">为什么 DH 还需要身份认证</a></li><li><a href="#format">看懂 X.509 证书各字段</a></li><li><a href="#issue">从生成密钥到签发证书</a></li><li><a href="#chain">逐级验链与错误定位</a></li><li><a href="#self-check">自测</a></li></ul></nav></details><div class="language-header"><span>中文讲解</span><span lang="en">English explanation</span></div><section class="lesson-section" id="authdh"><header class="section-head"><h2>为什么 DH 还需要身份认证</h2><p class="en-heading" lang="en">Why DH also needs authentication</p></header><div class="pair-row"><div class="cell" lang="zh-CN"><p>裸 DH 让双方算出一个数学上的共享值。若交换的公开值没有可信身份绑定，一位 <strong>中间人（Man-in-the-Middle, MITM）</strong> 可能让双方误以为各自正在与预定对象通信。修复思路是签名覆盖这次交换的两个公开值和相关上下文，让双方验证是谁参与了本次交换。讲义用 <strong>站到站协议（Station-to-Station, STS）</strong> 说明一种认证密钥交换。</p>
+</div><div class="cell english" lang="en"><p>Plain DH establishes a mathematical shared value. If exchanged values are not authenticated, a <strong>man in the middle (MITM)</strong> may make each side believe it is talking to the intended peer. Bind this exchange&#39;s public values and relevant context into signatures that the parties can check. The slides illustrate an authenticated key exchange with <strong>Station-to-Station (STS)</strong>.</p>
+</div></div><div class="pair-row"><div class="cell" lang="zh-CN"><p>验证者还要可信地取得签名公钥。公开广播依赖接收方另行核对发布者。目录依赖受信维护者。在线公钥权威可为查询响应签名。<strong>公钥证书（Public-Key Certificate）</strong> 把身份与公钥的绑定写进可验证的文件。客户端无须在每次交换时直接联系签发方来验证证书签名，仍要按策略检查证书状态。</p>
+</div><div class="cell english" lang="en"><p>The verifier still needs the authentic signature verification key. A broadcast relies on another way to check the publisher. A directory relies on its trusted maintainer. An online public-key authority can sign query responses. A <strong>public-key certificate</strong> expresses the identity-to-key binding in a verifiable document. Verifying its signature need not contact the issuer during every exchange, although status checks still follow policy.</p>
+</div></div><div class="pair-row"><div class="cell" lang="zh-CN"><p>长期身份密钥和每次连接协商的密钥承担不同角色。证书常用于认证长期身份。<strong>会话密钥（Session Key）</strong> 用于保护这一次会话的数据。</p>
+</div><div class="cell english" lang="en"><p>Long-term identity keys and fresh keys have different roles. Certificates often authenticate long-term identity. A <strong>session key</strong> protects the data for a particular session.</p>
+</div></div><p class="source">原讲义 / Slides · <span class="source-ref" title="lec6_cert.pdf">第 2–21 页</span></p></section><section class="lesson-section" id="format"><header class="section-head"><h2>看懂 X.509 证书各字段</h2><p class="en-heading" lang="en">Reading X.509 certificate fields</p></header><div class="pair-row"><div class="cell" lang="zh-CN"><div class="table-wrap"><table>
+<thead>
+<tr>
+<th>字段</th>
+<th>读法</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>Subject / Issuer</strong></td>
+<td>主体是证书描述的对象，签发者为签名负责。</td>
+</tr>
+<tr>
+<td><strong>SPKI（Subject Public Key Info）</strong></td>
+<td>主体公钥与算法标识。公钥可公开。</td>
+</tr>
+<tr>
+<td><strong>Serial Number / Validity</strong></td>
+<td>序列号帮签发者区分证书，有效期规定可接受的时间。</td>
+</tr>
+<tr>
+<td><strong>SAN（Subject Alternative Name）</strong></td>
+<td>可列出持证网站的域名。客户端拿访问的域名核对它。</td>
+</tr>
+<tr>
+<td><strong>Basic Constraints / Key Usage</strong></td>
+<td>说明是否可作为 CA、路径限制及允许用途。</td>
+</tr>
+<tr>
+<td><strong>Signature</strong></td>
+<td>签发者对待签证书内容的签名。</td>
+</tr>
+</tbody></table></div>
+</div><div class="cell english" lang="en"><div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Field</th>
+<th>What to look for</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>Subject / Issuer</strong></td>
+<td>The subject is described by the certificate. The issuer signs it.</td>
+</tr>
+<tr>
+<td><strong>Subject Public Key Info (SPKI)</strong></td>
+<td>The subject&#39;s public key and its algorithm identifier.</td>
+</tr>
+<tr>
+<td><strong>Serial number / Validity</strong></td>
+<td>The serial identifies a certificate for the issuer. The dates bound its validity.</td>
+</tr>
+<tr>
+<td><strong>Subject Alternative Name (SAN)</strong></td>
+<td>Can list website DNS names. The client checks its requested name against the certificate.</td>
+</tr>
+<tr>
+<td><strong>Basic constraints / Key usage</strong></td>
+<td>Indicate CA status, path restrictions and permitted uses.</td>
+</tr>
+<tr>
+<td><strong>Signature</strong></td>
+<td>The issuer&#39;s signature over the to-be-signed certificate content.</td>
+</tr>
+</tbody></table></div>
+</div></div><div class="pair-row"><div class="cell" lang="zh-CN"><p><strong>撤销（Revocation）</strong> 处理有效期还没结束却应停止接受的证书，例如私钥泄露。<strong>证书吊销列表（Certificate Revocation List, CRL）</strong> 记录被吊销的序列号并有签名，核对时既看签发者，也看列表本身的有效时间。证书的有效期、签名、名称和吊销都要按适用策略检查。</p>
+</div><div class="cell english" lang="en"><p><strong>Revocation</strong> handles a certificate that should no longer be accepted before expiry, for example after a key compromise. A signed <strong>certificate revocation list (CRL)</strong> records revoked serial numbers. Check the list&#39;s issuer and freshness as well as its signature. Validity, signatures, names and revocation are all subject to applicable validation policy.</p>
+</div></div><div class="pair-row"><div class="cell" lang="zh-CN"><p>证书链可以通过中间 CA 或交叉签发找到多个路径。路径验证要从叶证书走到客户端已经信任的锚。证书上写的「签发者名」是寻找验证公钥的线索，签名本身才证明这个绑定被相应私钥签过。</p>
+</div><div class="cell english" lang="en"><p>Intermediate CAs or cross-signing can create several possible paths. Validation builds a path from the leaf to an anchor the client already trusts. The issuer name helps locate a possible verification key. The signature proves that the corresponding private key signed the binding.</p>
+</div></div><p class="source">原讲义 / Slides · <span class="source-ref" title="lec6_cert.pdf">第 22–37 页</span></p></section><section class="lesson-section" id="issue"><header class="section-head"><h2>从生成密钥到签发证书</h2><p class="en-heading" lang="en">From generating a key to issuance</p></header><div class="pair-row"><div class="cell" lang="zh-CN"><p><strong>公钥基础设施（Public Key Infrastructure, PKI）</strong> 包括身份核验、证书签发、存储、验证与撤销。<strong>CA（Certification Authority）</strong> 签发证书。<strong>RA（Registration Authority）</strong> 可代为核验身份。持证服务器和用户是 <strong>终端实体（End Entities）</strong>，依赖证书的一方称 <strong>验证方（Relying Party）</strong>。</p>
+</div><div class="cell english" lang="en"><p><strong>Public key infrastructure (PKI)</strong> includes identity checks, issuance, distribution, verification and revocation. A <strong>certification authority (CA)</strong> issues certificates. A <strong>registration authority (RA)</strong> can assist with identity checks. Certificate holders are <strong>end entities</strong>, and parties that rely on their certificates are <strong>relying parties</strong>.</p>
+</div></div><div class="pair-row"><div class="cell" lang="zh-CN"><ol>
+<li>服务器生成公私钥，把公钥与所申请的身份写进 <strong>证书签名请求（CSR）</strong>。</li>
+<li>申请者用自己的私钥在 CSR 中证明持有对应密钥。CA 还要另行核验其是否有权使用申请的域名。</li>
+<li>核验通过后，CA 用 <strong>CA 私钥</strong> 签发证书。服务器部署证书和中间链，服务器私钥继续留在服务器的控制下。</li>
+<li>握手时，服务器用这把私钥完成与握手相关的证明。把一张公开证书交给客户端，并不会自动完成持钥证明。</li>
+</ol>
+</div><div class="cell english" lang="en"><ol>
+<li>The server generates a key pair and puts its public key and requested identity in a <strong>certificate signing request (CSR)</strong>.</li>
+<li>The applicant uses its private key to prove possession in the CSR. The CA separately checks that the applicant may use the requested domain.</li>
+<li>After verification, the CA signs the certificate with the <strong>CA private key</strong>. The server deploys the certificate and intermediates and keeps its own private key under its control.</li>
+<li>During a handshake, the server completes a proof tied to that private key. Delivering the public certificate alone leaves possession unproved.</li>
+</ol>
+</div></div><div class="pair-row"><div class="cell" lang="zh-CN"><p><strong>容易弄反的三把钥匙</strong>。CSR 用申请者公钥核验。证书签名用签发者公钥核验。握手中的对端持钥证明用证书绑定的公钥或套件相应机制核验。</p>
+</div><div class="cell english" lang="en"><p><strong>Track three verification roles.</strong> Check a CSR with the applicant&#39;s public key, an issued certificate with the issuer&#39;s public key, and a handshake proof with the key bound to the peer or the mechanism chosen by its suite.</p>
+</div></div><p class="source">原讲义 / Slides · <span class="source-ref" title="lec6_cert.pdf">第 38–61 页</span></p></section><section class="lesson-section" id="chain"><header class="section-head"><h2>逐级验链与错误定位</h2><p class="en-heading" lang="en">Validate a chain and identify failures</p></header><div class="pair-row"><div class="cell" lang="zh-CN"><p>设 R 是客户端受信根，I 是中间 CA，S 是服务器证书。用 I 的公钥验 S，用 R 的公钥验 I。<strong>信任锚（Trust Anchor）</strong> 来自本地信任配置。根的自签名能证明它与公钥相符，是否信任该根是单独的选择。</p>
+</div><div class="cell english" lang="en"><p>Let R be a client-trusted root, I an intermediate CA and S a server certificate. Verify S with I&#39;s public key and I with R&#39;s public key. A <strong>trust anchor</strong> comes from local trust configuration. A root&#39;s self-signature verifies with its own key, while trusting that root is a separate decision.</p>
+</div></div><div class="pair-row"><div class="cell" lang="zh-CN"><p><strong>按次序检查</strong>。找能通向信任锚的链，验每条签名。检查签发者获准作为 CA，核对基本约束、有效期、用途和适用的吊销信息。核对 S 的主机名，再看握手是否提供持钥证明。路径长度题要按题意数 <strong>从属 CA</strong>，别把最终叶证书误数进去。</p>
+</div><div class="cell english" lang="en"><p><strong>Check in order.</strong> Build a path to an anchor and verify each signature. Ensure an issuer is authorized as a CA. Check basic constraints, time, usage and applicable revocation status. Match S to the hostname and check for handshake proof of possession. When the question limits path length, count subordinate <strong>CAs</strong> under the stated rules. The final leaf is not a subordinate CA.</p>
+</div></div><div class="pair-row"><div class="cell" lang="zh-CN"><div class="table-wrap"><table>
+<thead>
+<tr>
+<th>情境</th>
+<th>判定</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>S 签名有效，但访问的域名不在 SAN</td>
+<td>身份不匹配，拒绝。</td>
+</tr>
+<tr>
+<td>中间 I 被设置成非 CA，却签发 S</td>
+<td>缺少签发授权，拒绝。</td>
+</tr>
+<tr>
+<td>I 的路径长度为 0，却多出一个下级中间 CA</td>
+<td>超过了该约束，拒绝。</td>
+</tr>
+<tr>
+<td>CA 签名私钥失陷</td>
+<td>一些证书的密码学签名可能仍正确，但信任假设已被破坏，需要撤销或更新信任配置。</td>
+</tr>
+</tbody></table></div>
+</div><div class="cell english" lang="en"><div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Scenario</th>
+<th>Result</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>S has a valid signature but its SAN lacks the requested domain</td>
+<td>Reject the identity mismatch.</td>
+</tr>
+<tr>
+<td>I is marked as a non-CA but issued S</td>
+<td>Reject for lack of issuer authorization.</td>
+</tr>
+<tr>
+<td>I has a path length of zero and a further intermediate CA appears below it</td>
+<td>Reject the path-length violation.</td>
+</tr>
+<tr>
+<td>A CA signing key is compromised</td>
+<td>Signatures can remain mathematically valid while the trust assumption has failed. Revoke certificates or update trust as appropriate.</td>
+</tr>
+</tbody></table></div>
+</div></div><div class="pair-row"><div class="cell" lang="zh-CN"><p>HW2 Q6 将多个失败条件分别问出。每次只应用题目修改的那一项，再写清楚失败的是哪条验证。</p>
+</div><div class="cell english" lang="en"><p>HW2 Q6 tests failures separately. Apply the question&#39;s one change and name the check that fails.</p>
+</div></div><p class="source">原讲义 / Slides · <span class="source-ref" title="lec6_cert.pdf">第 62–75 页</span></p></section><section class="quiz" id="self-check"><header class="section-head"><h2>合上讲义自测</h2><p class="en-heading" lang="en">Check your understanding</p></header><div class="pair-row"><div class="cell" lang="zh-CN"><ol>
+<li>一张公开证书放在服务器上，证明了它目前持有私钥吗？</li>
+<li>浏览器凭什么信任链顶的根？是看根的签名还是本地配置？</li>
+<li>为什么私钥泄露时，有效期内的证书也可能要撤销？</li>
+</ol>
+</div><div class="cell english" lang="en"><ol>
+<li>Does serving a public certificate prove possession of its private key?</li>
+<li>Does the root&#39;s signature or local trust configuration establish trust at the top of a chain?</li>
+<li>Why can a certificate need revocation before it expires?</li>
+</ol>
+</div></div><details><summary>查看答案 / Show answers</summary><div class="pair-row"><div class="cell" lang="zh-CN"><ol>
+<li>还要在握手中完成和这把私钥相关的证明。</li>
+<li>本地配置提供信任锚。自签名只能由自身公钥验证。</li>
+<li>泄露以后别人也可能证明持钥。仅凭日期和签名无法处理这种变化。</li>
+</ol>
+</div><div class="cell english" lang="en"><ol>
+<li>The handshake must still complete a proof linked to the private key.</li>
+<li>Local configuration establishes the trust anchor. A self-signature only checks against its own public key.</li>
+<li>Another party may now prove possession. Date and signature checks cannot reflect that change on their own.</li>
+</ol>
+</div></div></details></section><nav class="bottom" aria-label="讲次切换"><a href="l05.html">上一讲 · L05</a><a href="index.html">返回目录</a><a href="l07.html">下一讲 · L07</a></nav></main></body></html>

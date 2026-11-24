@@ -1,0 +1,165 @@
+<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>L02 分组密码与加密模式 · IEMS5710A</title><link rel="stylesheet" href="reader.css"></head><body><header class="top"><nav aria-label="课程导航"><a href="index.html">5710 双语讲义</a><a href="exam.html">高频考点</a><span class="current">L02 分组密码与加密模式</span></nav></header><main><header class="hero"><p class="eyebrow">IEMS5710A · L02</p><h1>分组密码与加密模式</h1><p class="en-heading" lang="en">Block ciphers and modes of operation</p><div class="intro"><div class="pair-row"><div class="cell" lang="zh-CN"><p>把分组密码想成一台固定宽度的机器，输入和输出都是一块数据。<strong>密码算法</strong> 定义机器内部怎么变换。<strong>加密模式</strong> 决定分成多块以后怎样使用这台机器。这一区分能帮你拆开 AES、CBC 和 GCM 等名词。</p>
+</div><div class="cell english" lang="en"><p>Think of a block cipher as a fixed-width machine with one block in and one block out. The <strong>cipher</strong> determines the internal transformation. The <strong>mode of operation</strong> determines how to use it across many blocks. This distinction helps put AES, CBC and GCM in the right roles.</p>
+</div></div></div><p class="meta-text">本学期配套练习 / Current homework · <span class="source-ref" title="IEMS5710HW1.pdf">HW1 Q3</span></p></header><details class="jump" open><summary>本讲目录 / In this lecture</summary><nav aria-label="本讲目录"><ul><li><a href="#classical">古典密码的可逆性</a></li><li><a href="#rounds">Feistel、DES 与 AES</a></li><li><a href="#miniaes">有限域与 Mini-AES 算例</a></li><li><a href="#games">PRF、PRP 与选择明文安全</a></li><li><a href="#modes">五种模式、IV 与差错传播</a></li><li><a href="#padding">PKCS#7 怎样填最后一块</a></li><li><a href="#self-check">自测</a></li></ul></nav></details><div class="language-header"><span>中文讲解</span><span lang="en">English explanation</span></div><section class="lesson-section" id="classical"><header class="section-head"><h2>古典密码的可逆性</h2><p class="en-heading" lang="en">Reversibility in classical ciphers</p></header><div class="pair-row"><div class="cell" lang="zh-CN"><p>把字母 A 到 Z 编为 0 到 25。<strong>凯撒密码（Caesar Cipher）</strong> 的移位对每个位置相同，<strong>维吉尼亚密码（Vigenère Cipher）</strong> 用关键词轮流给出移位。重复周期会留下规律，统计观察可以帮助分析它们。</p>
+</div><div class="cell english" lang="en"><p>Number A through Z from 0 through 25. The <strong>Caesar cipher</strong> uses one shift in every position. The <strong>Vigenère cipher</strong> cycles through shifts supplied by a keyword. Repeated patterns and periods give statistical clues.</p>
+</div></div><div class="pair-row"><div class="cell" lang="zh-CN"><p><strong>仿射密码（Affine Cipher）</strong> 使用 c=(am+b) mod 26。解密要能乘 a 的 <strong>模逆（Modular Inverse）</strong>，所以 gcd(a,26)=1。取 a=5、b=8，明文 H 对应 7，密文是 (35+8) mod 26=17，即 R。5 的模逆是 21，因为 5×21≡1。解密得 21×(17−8) mod 26=7。若 a=2，明文 0 和 13 都给出同样的结果。</p>
+</div><div class="cell english" lang="en"><p>The <strong>affine cipher</strong> uses c=(am+b) mod 26. Decryption requires the <strong>modular inverse</strong> of a, so gcd(a,26)=1. With a=5 and b=8, H has index 7 and maps to (35+8) mod 26=17, or R. The inverse of 5 is 21 because 5×21≡1. Decryption gives 21×(17−8) mod 26=7. If a=2, plaintext values 0 and 13 map to the same result.</p>
+</div></div><div class="pair-row"><div class="cell" lang="zh-CN"><p><strong>希尔密码（Hill Cipher）</strong> 把字母块当向量，用矩阵乘法混合。密钥矩阵必须在模 26 下可逆，等价于行列式与 26 互质。即使可逆，线性结构仍会保留输入之间的关系。现代算法要加入非线性变换。</p>
+</div><div class="cell english" lang="en"><p>The <strong>Hill cipher</strong> treats a letter block as a vector and mixes it with a matrix. The key matrix must be invertible modulo 26, which requires its determinant to be coprime to 26. A reversible linear transformation still preserves relations among inputs. Modern ciphers add nonlinear operations.</p>
+</div></div><p class="source">原讲义 / Slides · <span class="source-ref" title="lec2_block.pdf">第 2–19 页</span></p></section><section class="lesson-section" id="rounds"><header class="section-head"><h2>Feistel、DES 与 AES</h2><p class="en-heading" lang="en">Feistel networks, DES and AES</p></header><div class="pair-row"><div class="cell" lang="zh-CN"><p>在固定密钥下，分组密码是 <strong>置换（Permutation）</strong>。每种输入都有不同的输出，解密可以唯一逆推。<strong>混淆（Confusion）</strong> 让密钥和密文的关系难以分析。<strong>扩散（Diffusion）</strong> 让局部输入变化影响许多输出位。输入改一位时输出许多位改变，称 <strong>雪崩效应（Avalanche Effect）</strong>。</p>
+</div><div class="cell english" lang="en"><p>For a fixed key, a block cipher is a <strong>permutation</strong>. Distinct inputs give distinct outputs, enabling unique decryption. <strong>Confusion</strong> obscures the relationship between key and ciphertext. <strong>Diffusion</strong> spreads local changes across many output bits. A one-bit input change affecting many output bits is the <strong>avalanche effect</strong>.</p>
+</div></div><div class="pair-row"><div class="cell" lang="zh-CN"><p><strong>Feistel 网络（Feistel Network）</strong> 每轮将 (L,R) 变为 (R, L⊕F(R,Kᵢ))。新左半直接是旧右半。用新右半异或相同的 F 值就得到旧左半。因此 F 本身可以不是可逆函数。多轮使用不同的子密钥，解密逆序处理。</p>
+</div><div class="cell english" lang="en"><p>A <strong>Feistel network</strong> maps (L,R) to (R, L⊕F(R,Kᵢ)) in one round. The new left half gives the old right half. XORing the new right half with the same F value recovers the old left half. F need not itself be invertible. Across multiple rounds, decryption uses the round keys in reverse order.</p>
+</div></div><div class="pair-row"><div class="cell" lang="zh-CN"><p><strong>例子</strong>。旧 L=1010、旧 R=0110，设这一轮 F(R,Kᵢ)=0011，则输出左右半为 0110、1001。逆推时先取旧 R=0110，再算旧 L=1001⊕0011=1010。</p>
+</div><div class="cell english" lang="en"><p><strong>Example.</strong> Let the old halves be L=1010 and R=0110 and let F(R,Kᵢ)=0011. The new halves are 0110 and 1001. Recover the old R as 0110, then obtain the old L as 1001⊕0011=1010.</p>
+</div></div><div class="pair-row"><div class="cell" lang="zh-CN"><div class="table-wrap"><table>
+<thead>
+<tr>
+<th>算法</th>
+<th>理解重点</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>DES</strong></td>
+<td>64 位分组、56 位有效密钥、16 轮 Feistel。轮函数扩展、异或子密钥、查替换盒、置换。密钥空间太小。</td>
+</tr>
+<tr>
+<td><strong>3DES（Triple DES）</strong></td>
+<td>连续用 DES 做加密、解密、加密，兼顾早期兼容性。分组宽度仍为 64 位。</td>
+</tr>
+<tr>
+<td><strong>AES</strong></td>
+<td>固定 128 位分组。128、192、256 位密钥分别对应 10、12、14 轮。</td>
+</tr>
+</tbody></table></div>
+</div><div class="cell english" lang="en"><div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Cipher</th>
+<th>What to understand</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>DES</strong></td>
+<td>64-bit blocks, a 56-bit effective key and 16 Feistel rounds. Its round function expands, XORs a subkey, applies substitution boxes, then permutes. The key space is too small.</td>
+</tr>
+<tr>
+<td><strong>Triple DES (3DES)</strong></td>
+<td>Encrypt, decrypt and encrypt using DES in sequence, with historical compatibility benefits. It retains a 64-bit block size.</td>
+</tr>
+<tr>
+<td><strong>AES</strong></td>
+<td>Always uses 128-bit blocks. Keys of 128, 192 and 256 bits require 10, 12 and 14 rounds, respectively.</td>
+</tr>
+</tbody></table></div>
+</div></div><div class="pair-row"><div class="cell" lang="zh-CN"><p>AES 将块排成 4×4 字节状态。<strong>字节替换（SubBytes）</strong> 提供非线性，<strong>行移位（ShiftRows）</strong> 跨列移动字节，<strong>列混合（MixColumns）</strong> 让同列互相影响，<strong>轮密钥加（AddRoundKey）</strong> 将状态与轮密钥异或。首轮前先加密钥，末轮省去列混合。</p>
+</div><div class="cell english" lang="en"><p>AES arranges a block into a 4×4 byte state. <strong>SubBytes</strong> adds nonlinearity, <strong>ShiftRows</strong> moves bytes between columns, <strong>MixColumns</strong> mixes bytes within each column, and <strong>AddRoundKey</strong> XORs the state and a round key. An initial key addition precedes the rounds, and the final round omits MixColumns.</p>
+</div></div><p class="source">原讲义 / Slides · <span class="source-ref" title="lec2_block.pdf">第 20–41 页</span></p></section><section class="lesson-section" id="miniaes"><header class="section-head"><h2>有限域与 Mini-AES 算例</h2><p class="en-heading" lang="en">Finite fields and a Mini-AES example</p></header><div class="pair-row"><div class="cell" lang="zh-CN"><p><strong>有限域（Finite Field）</strong> 里可以做加、减、乘，所有非零元素都有乘法逆元。Mini-AES 把 16 位状态写成 2×2 矩阵，每格 4 位，称一个 <strong>半字节（Nibble）</strong>。它们属于 GF(16)。</p>
+</div><div class="cell english" lang="en"><p>A <strong>finite field</strong> supports addition, subtraction and multiplication, and every nonzero element has a multiplicative inverse. Mini-AES uses a 2×2 state of four-bit <strong>nibbles</strong>, for a total of 16 bits. The nibbles are elements of GF(16).</p>
+</div></div><div class="pair-row"><div class="cell" lang="zh-CN"><p>二进制的 4 位可视为多项式系数。F 对应 x³+x²+x+1，A 对应 x³+x。相加用 XOR，F⊕A=5。相乘时先做多项式乘法再以 x⁴+x+1 取余，所以可把 x⁴ 换为 x+1。F 和 A 的乘积展开后是 x⁶+x⁵+x²+x，约减得 x³+x²，对应十六进制 C。</p>
+</div><div class="cell english" lang="en"><p>Four bits can be read as polynomial coefficients. F represents x³+x²+x+1, and A represents x³+x. Their sum is XOR, giving F⊕A=5. For multiplication, multiply the polynomials and reduce modulo x⁴+x+1, so x⁴ can be replaced by x+1. The product expands to x⁶+x⁵+x²+x, which reduces to x³+x², or hexadecimal C.</p>
+</div></div><div class="pair-row"><div class="cell" lang="zh-CN"><p>在 Mini-AES 的课件流程里，先加轮密钥 0。第一轮做半字节替换、行移位、列混合、加轮密钥 1。第二轮仍有替换与移位，省去列混合，最后加轮密钥 2。题目给出表和轮密钥时，每一步写出 2×2 状态，比直接猜最终密文可靠。</p>
+</div><div class="cell english" lang="en"><p>The Mini-AES flow starts by adding round key 0. Round 1 applies nibble substitution, row shifting, column mixing, and round key 1. Round 2 retains substitution and shifting, omits column mixing, and adds round key 2. When a question supplies the tables and round keys, track the 2×2 state after every step.</p>
+</div></div><p class="source">原讲义 / Slides · <span class="source-ref" title="lec2_block.pdf">第 42–55 页</span></p></section><section class="lesson-section" id="games"><header class="section-head"><h2>PRF、PRP 与选择明文安全</h2><p class="en-heading" lang="en">PRFs, PRPs and chosen-plaintext security</p></header><aside class="exam-callout" aria-label="旧卷高频考点"><span class="exam-badge">高频 · 5/5</span><a href="exam.html#pseudo">PRG、PRF、PRP 与区分实验</a><p lang="en">PRGs, PRFs, PRPs and distinguishing experiments</p><ul class="evidence" aria-label="出现题号"><li><span class="source-ref" title="IERG4150_2021.pdf">2021–22 Q3 <small class="source-page">(PDF p. 4)</small></span></li><li><span class="source-ref" title="IERG4150_2021.pdf">2021–22 Q4(a) <small class="source-page">(PDF p. 5)</small></span></li><li><span class="source-ref" title="IERG4150_2022.pdf">2022–23 Q1 <small class="source-page">(PDF p. 3)</small></span></li><li><span class="source-ref" title="IERG4150_2022.pdf">2022–23 Q2(a) <small class="source-page">(PDF p. 4)</small></span></li><li><span class="source-ref" title="IERG4150_2023.pdf">2023–24 Q2 <small class="source-page">(PDF p. 8)</small></span></li><li><span class="source-ref" title="IERG4150_2024.pdf">2024–25 Q2 <small class="source-page">(PDF p. 4)</small></span></li><li><span class="source-ref" title="IERG4150_2025.pdf">2025–26 Q1 <small class="source-page">(PDF p. 4)</small></span></li></ul></aside><div class="pair-row"><div class="cell" lang="zh-CN"><p><strong>伪随机函数（Pseudorandom Function, PRF）</strong> 用秘密密钥选出一个函数，高效观察者很难把它与随机函数区分。理想随机函数对同一输入总返回原值，不同输入的输出可以碰巧相同。<strong>伪随机置换（Pseudorandom Permutation, PRP）</strong> 的理想对象是随机置换，不同输入对应不同输出。</p>
+</div><div class="cell english" lang="en"><p>A <strong>pseudorandom function (PRF)</strong> uses a secret key to select a function that efficient observers cannot distinguish from a random function. An ideal random function always returns the same output for a repeated input, and distinct inputs can happen to collide. A <strong>pseudorandom permutation (PRP)</strong> is compared with a random permutation, which has distinct outputs for distinct inputs.</p>
+</div></div><div class="pair-row"><div class="cell" lang="zh-CN"><p><strong>反例</strong>。Eₖ(x)=x⊕k 每个 k 都可逆，但 Eₖ(x)⊕Eₖ(y)=x⊕y 对任意两输入恒成立。对于 n 位的随机置换，固定第一个输出后，第二个输出有 2ⁿ−1 种等可能选项，只有一个能保留这个非零差。因此实际构造的概率为 1，理想置换中的概率为 1/(2ⁿ−1)。答题写出两种实验、检查条件、两边概率和它们的差。</p>
+</div><div class="cell english" lang="en"><p><strong>Counterexample.</strong> Eₖ(x)=x⊕k is invertible for every k, yet Eₖ(x)⊕Eₖ(y)=x⊕y for every pair. For a random permutation on n-bit strings, once the first output is fixed, the second is uniform over 2ⁿ−1 other outputs. Exactly one preserves the nonzero XOR difference. The real and ideal probabilities are 1 and 1/(2ⁿ−1), respectively. State both experiments, the test, its two probabilities and their difference.</p>
+</div></div><div class="pair-row"><div class="cell" lang="zh-CN"><p><strong>选择明文安全（Chosen-Plaintext Attack Security, CPA Security）</strong> 实验允许对手多次提交等长消息对。挑战方固定隐藏选择位 b，每次都加密消息对的第 b 个。若同一消息用同一密钥总得到相同密文，比较第一次和后续的等式关系就能泄露选择位。加入正确使用的随机值或状态才有机会达到 CPA 安全。</p>
+</div><div class="cell english" lang="en"><p>In <strong>chosen-plaintext attack (CPA) security</strong>, the adversary can submit multiple pairs of equal-length messages. The challenger fixes one hidden choice bit b and always encrypts the b-th message in a pair. If the same message under a fixed key always gives the same ciphertext, comparisons across queries can leak the hidden choice. Properly used randomness or state can remove that deterministic pattern.</p>
+</div></div><p class="source">原讲义 / Slides · <span class="source-ref" title="lec2_block.pdf">第 56–66 页</span></p></section><section class="lesson-section" id="modes"><header class="section-head"><h2>五种模式、IV 与差错传播</h2><p class="en-heading" lang="en">Five modes, IVs and error propagation</p></header><aside class="exam-callout" aria-label="旧卷高频考点"><span class="exam-badge">高频 · 3/5</span><a href="exam.html#modes">分组模式、IV 与 CBC 差错</a><p lang="en">Modes, IVs and CBC error propagation</p><ul class="evidence" aria-label="出现题号"><li><span class="source-ref" title="IERG4150_2021.pdf">2021–22 Q4(b) <small class="source-page">(PDF p. 5)</small></span></li><li><span class="source-ref" title="IERG4150_2022.pdf">2022–23 Q2(b) <small class="source-page">(PDF p. 4)</small></span></li><li><span class="source-ref" title="IERG4150_2025.pdf">2025–26 Q2 <small class="source-page">(PDF p. 5)</small></span></li></ul></aside><div class="pair-row"><div class="cell" lang="zh-CN"><p>记 E 为分组加密，D 为解密，Pᵢ/Cᵢ 分别为第 i 个明文块和密文块。<strong>初始化向量（Initialization Vector, IV）</strong> 给模式一个起始输入。它可以公开，关键是满足模式对随机性或唯一性的要求。</p>
+</div><div class="cell english" lang="en"><p>Let E and D be block encryption and decryption, and let Pᵢ and Cᵢ denote the i-th plaintext and ciphertext blocks. An <strong>initialization vector (IV)</strong> starts a mode. It can be public, while randomness or uniqueness requirements depend on the specific mode.</p>
+</div></div><div class="pair-row"><div class="cell" lang="zh-CN"><div class="table-wrap"><table>
+<thead>
+<tr>
+<th>模式</th>
+<th>当前块依赖什么</th>
+<th>必须记住的性质</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>ECB</strong> 电子密码本</td>
+<td>Cᵢ=E(Pᵢ)。</td>
+<td>同块同密文，暴露重复结构。</td>
+</tr>
+<tr>
+<td><strong>CBC</strong> 密码分组链接</td>
+<td>Cᵢ=E(Pᵢ⊕Cᵢ₋₁)，首块 C₀=IV。</td>
+<td>加密串行。用不可预测的 IV。解密时可以在收到完整密文后并行。</td>
+</tr>
+<tr>
+<td><strong>CFB</strong> 密文反馈</td>
+<td>用 E(Cᵢ₋₁) 作为当前掩码。</td>
+<td>前一段密文反馈，传输错误可蔓延到后续有限片段。</td>
+</tr>
+<tr>
+<td><strong>OFB</strong> 输出反馈</td>
+<td>E 的前一轮输出做下一轮输入。</td>
+<td>密钥流独立于消息，位错只影响对应位。不能在同一密钥下重复 IV。</td>
+</tr>
+<tr>
+<td><strong>CTR</strong> 计数器</td>
+<td>E(nonce 与计数器组成的块) 做掩码。</td>
+<td>可并行并按块随机访问。同一密钥下计数器块必须唯一。</td>
+</tr>
+</tbody></table></div>
+</div><div class="cell english" lang="en"><div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Mode</th>
+<th>What the current block depends on</th>
+<th>Property to remember</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>ECB</strong>, Electronic Codebook</td>
+<td>Cᵢ=E(Pᵢ).</td>
+<td>Repeated blocks give repeated ciphertext blocks.</td>
+</tr>
+<tr>
+<td><strong>CBC</strong>, Cipher Block Chaining</td>
+<td>Cᵢ=E(Pᵢ⊕Cᵢ₋₁), with C₀=IV.</td>
+<td>Encryption is sequential. Use an unpredictable IV. Decryption can run in parallel once ciphertext is available.</td>
+</tr>
+<tr>
+<td><strong>CFB</strong>, Cipher Feedback</td>
+<td>E(Cᵢ₋₁) supplies the mask.</td>
+<td>Prior ciphertext feeds back. A transmission error can propagate for a limited number of segments.</td>
+</tr>
+<tr>
+<td><strong>OFB</strong>, Output Feedback</td>
+<td>The previous E output becomes its next input.</td>
+<td>The stream is independent of the message. A bit error affects only its matching bit. Do not repeat an IV under the key.</td>
+</tr>
+<tr>
+<td><strong>CTR</strong>, Counter mode</td>
+<td>Encrypt a block encoding the nonce and counter to obtain a mask.</td>
+<td>Supports parallel work and random access. Counter inputs under a key must be unique.</td>
+</tr>
+</tbody></table></div>
+</div></div><div class="pair-row"><div class="cell" lang="zh-CN"><p><strong>旧卷常见的 CBC 推导</strong>。Pᵢ=D(Cᵢ)⊕Cᵢ₋₁。传输中 Cᵢ 一位出错时，Pᵢ 通常整块失真，Pᵢ₊₁ 的对应位翻转，Pᵢ₊₂ 起不受影响。若变的是加密前的 Pᵢ，链接会使 Cᵢ 及之后块受影响。先读清题目说的是 <strong>明文改变</strong> 还是 <strong>密文差错</strong>。</p>
+</div><div class="cell english" lang="en"><p><strong>CBC derivation often tested.</strong> Pᵢ=D(Cᵢ)⊕Cᵢ₋₁. A bit error in transmitted Cᵢ normally corrupts Pᵢ and flips the corresponding bit of Pᵢ₊₁. Blocks from Pᵢ₊₂ onward are unaffected. Changing the original Pᵢ before encryption affects Cᵢ and its successors through chaining. Read whether the question changes the <strong>input plaintext</strong> or the <strong>received ciphertext</strong>.</p>
+</div></div><div class="pair-row"><div class="cell" lang="zh-CN"><p>同一密钥和同一个 CBC IV 下，两条明文的共同前缀会表现为相同的密文前缀。CTR 输入复用时会重新产生相同掩码，密文异或消去掩码。这两类泄露不同。保密用的模式还需要结合完整性验证，见 L04。</p>
+</div><div class="cell english" lang="en"><p>With the same key and CBC IV, messages with a common plaintext prefix have a common ciphertext prefix. Repeating a CTR input repeats a mask, which cancels when ciphertexts are XORed. These are different leaks. A confidentiality mode also needs integrity protection in settings with active tampering. See L04.</p>
+</div></div><p class="source">原讲义 / Slides · <span class="source-ref" title="lec2_block.pdf">第 67–90 页</span></p></section><section class="lesson-section" id="padding"><header class="section-head"><h2>PKCS#7 怎样填最后一块</h2><p class="en-heading" lang="en">PKCS#7 padding</p></header><div class="pair-row"><div class="cell" lang="zh-CN"><p><strong>填充（Padding）</strong> 把明文补到整块。块大小为 B 字节，需补 n 个字节时，PKCS#7 在末尾加入 n 个值为 n 的字节。AES 以 16 字节分块，13 字节消息结尾补 03 03 03。若消息已是 16 的倍数，补 16 个十六进制 10。每份明文都补，才能通过末尾恢复原长。CTR 等流式模式可按实际长度处理末尾。</p>
+</div><div class="cell english" lang="en"><p><strong>Padding</strong> completes the final block. For a B-byte block, PKCS#7 adds n bytes whose value is n. With 16-byte AES blocks, a 13-byte message ends in 03 03 03. A message already aligned to blocks receives 16 bytes of hexadecimal 10. Padding every message makes it possible to recover the original length. Stream-like modes such as CTR can process a partial last block directly.</p>
+</div></div><p class="source">原讲义 / Slides · <span class="source-ref" title="lec2_block.pdf">第 91–93 页</span></p></section><section class="quiz" id="self-check"><header class="section-head"><h2>合上讲义自测</h2><p class="en-heading" lang="en">Check your understanding</p></header><div class="pair-row"><div class="cell" lang="zh-CN"><ol>
+<li>写出一轮 Feistel 的两个逆推式。</li>
+<li>C₂ 发生一位传输差错，CBC 的 P₁ 到 P₄ 各受何影响？</li>
+<li>用 AES 的块长，为 30 字节消息写出 PKCS#7 填充。</li>
+</ol>
+</div><div class="cell english" lang="en"><ol>
+<li>Write the inverse equations for one Feistel round.</li>
+<li>A transmitted C₂ has a one-bit error. What happens to P₁ through P₄ in CBC?</li>
+<li>Give the PKCS#7 padding for 30 bytes with AES.</li>
+</ol>
+</div></div><details><summary>查看答案 / Show answers</summary><div class="pair-row"><div class="cell" lang="zh-CN"><ol>
+<li>R=L′，L=R′⊕F(L′,Kᵢ)。</li>
+<li>P₁ 不变。P₂ 通常整块失真。P₃ 对应位翻转。P₄ 不变。</li>
+<li>02 02，补后为 32 字节。</li>
+</ol>
+</div><div class="cell english" lang="en"><ol>
+<li>R=L′ and L=R′⊕F(L′,Kᵢ).</li>
+<li>P₁ is unchanged. P₂ is normally corrupted across the block. The corresponding bit of P₃ flips. P₄ is unchanged.</li>
+<li>Append 02 02 for a total of 32 bytes.</li>
+</ol>
+</div></div></details></section><nav class="bottom" aria-label="讲次切换"><a href="l01.html">上一讲 · L01</a><a href="index.html">返回目录</a><a href="l03.html">下一讲 · L03</a></nav></main></body></html>

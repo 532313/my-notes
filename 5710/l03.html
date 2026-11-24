@@ -1,0 +1,139 @@
+<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>L03 公钥密码与数字签名 · IEMS5710A</title><link rel="stylesheet" href="reader.css"></head><body><header class="top"><nav aria-label="课程导航"><a href="index.html">5710 双语讲义</a><a href="exam.html">高频考点</a><span class="current">L03 公钥密码与数字签名</span></nav></header><main><header class="hero"><p class="eyebrow">IEMS5710A · L03</p><h1>公钥密码与数字签名</h1><p class="en-heading" lang="en">Public-key cryptography and digital signatures</p><div class="intro"><div class="pair-row"><div class="cell" lang="zh-CN"><p>公开的参数能帮助双方建立秘密或验证身份。开始计算前，在纸上写清 <strong>用谁的密钥</strong>、<strong>在哪个模数下运算</strong>，以及 <strong>结果是共享值、密文还是签名</strong>。</p>
+</div><div class="cell english" lang="en"><p>Public information can help two parties establish a secret or check an identity. Before calculating, write down <strong>whose key is used</strong>, <strong>which modulus applies</strong>, and <strong>whether the result is a shared value, ciphertext or signature</strong>.</p>
+</div></div></div><p class="meta-text">本学期配套练习 / Current homework · <span class="source-ref" title="IEMS5710HW1.pdf">HW1 Q1–6</span></p></header><details class="jump" open><summary>本讲目录 / In this lecture</summary><nav aria-label="本讲目录"><ul><li><a href="#dh">Diffie–Hellman 如何得到同一个值</a></li><li><a href="#rsa">RSA 密钥生成与模幂手算</a></li><li><a href="#oaep">裸 RSA、随机编码与混合加密</a></li><li><a href="#elgamal">ElGamal 的随机掩码和可塑性</a></li><li><a href="#groups">离散对数求解与 CRT</a></li><li><a href="#signature">签名和加密分别是谁做的</a></li><li><a href="#self-check">自测</a></li></ul></nav></details><div class="language-header"><span>中文讲解</span><span lang="en">English explanation</span></div><section class="lesson-section" id="dh"><header class="section-head"><h2>Diffie–Hellman 如何得到同一个值</h2><p class="en-heading" lang="en">How Diffie–Hellman yields a shared value</p></header><aside class="exam-callout" aria-label="旧卷高频考点"><span class="exam-badge">高频 · 5/5</span><a href="exam.html#publicdh">ElGamal、DH 与随机性</a><p lang="en">ElGamal, DH and randomness</p><ul class="evidence" aria-label="出现题号"><li><span class="source-ref" title="IERG4150_2021.pdf">2021–22 Q7 <small class="source-page">(PDF p. 8)</small></span></li><li><span class="source-ref" title="IERG4150_2022.pdf">2022–23 Q5 <small class="source-page">(PDF p. 7)</small></span></li><li><span class="source-ref" title="IERG4150_2023.pdf">2023–24 Q5 <small class="source-page">(PDF p. 11)</small></span></li><li><span class="source-ref" title="IERG4150_2024.pdf">2024–25 Q5 <small class="source-page">(PDF p. 7)</small></span></li><li><span class="source-ref" title="IERG4150_2025.pdf">2025–26 Q5 <small class="source-page">(PDF p. 8)</small></span></li></ul></aside><div class="pair-row"><div class="cell" lang="zh-CN"><p><strong>Diffie–Hellman 密钥交换（DH Key Exchange）</strong> 的公开参数是生成元 g 和模数 p 等。Alice 留下秘密 a，发送 A=gᵃ mod p。Bob 留下秘密 b，发送 B=gᵇ mod p。Alice 用 B 和 a 算 Bᵃ，Bob 用 A 和 b 算 Aᵇ，两边都得到 gᵃᵇ mod p。真实协议通常再从共享值派生密钥。</p>
+</div><div class="cell english" lang="en"><p><strong>Diffie–Hellman (DH) key exchange</strong> uses public parameters such as a generator g and modulus p. Alice keeps a secret a and sends A=gᵃ mod p. Bob keeps b and sends B=gᵇ mod p. Alice computes Bᵃ and Bob computes Aᵇ. Both obtain gᵃᵇ mod p. A real protocol normally derives usable keys from the shared value.</p>
+</div></div><div class="pair-row"><div class="cell" lang="zh-CN"><p><strong>手算例</strong>。取 p=23、g=5、a=6、b=15。得到 A=8、B=19，两边算得 2。指数很大时用 <strong>平方乘法（Square-and-Multiply）</strong>，先算 g、g²、g⁴、g⁸ 的余数，按指数的二进制位选取相乘，用到哪一步就在哪一步取模。</p>
+</div><div class="cell english" lang="en"><p><strong>Worked example.</strong> With p=23, g=5, a=6 and b=15, A=8 and B=19, and the common result is 2. For large exponents, use <strong>square-and-multiply</strong>. Find the residues of g, g², g⁴, g⁸ and so on, multiply the powers selected by the binary exponent, and reduce after each operation.</p>
+</div></div><div class="pair-row"><div class="cell" lang="zh-CN"><p><strong>群（Group）</strong> 需要封闭、结合律、单位元和逆元。模 p 的非零余数在乘法下构成一个群，讲义用 <strong>生成元（Generator）</strong> 的幂来遍历这个群。更一般的 DH 可在合适的子群里做。<strong>欧拉函数（Euler’s Totient Function）</strong> φ(n) 计数与 n 互质的余数，若 p 是质数则 φ(p)=p−1。</p>
+</div><div class="cell english" lang="en"><p>A <strong>group</strong> has closure, associativity, an identity and inverses. Nonzero residues modulo prime p form a multiplicative group, and successive powers of a <strong>generator</strong> can traverse it. DH can also use a suitable subgroup. <strong>Euler&#39;s totient function</strong> φ(n) counts residues coprime to n. For a prime p, φ(p)=p−1.</p>
+</div></div><div class="pair-row"><div class="cell" lang="zh-CN"><div class="table-wrap"><table>
+<thead>
+<tr>
+<th>困难问题</th>
+<th>已知与目标</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>DLP（Discrete Logarithm Problem）</strong></td>
+<td>知 g 和 gᵃ，求指数 a。</td>
+</tr>
+<tr>
+<td><strong>CDH（Computational Diffie–Hellman）</strong></td>
+<td>知 g、gᵃ 和 gᵇ，求共享值 gᵃᵇ。</td>
+</tr>
+<tr>
+<td><strong>DDH（Decisional Diffie–Hellman）</strong></td>
+<td>知 g、gᵃ 和 gᵇ，判断另一个值是 gᵃᵇ 还是独立随机群元素。</td>
+</tr>
+</tbody></table></div>
+</div><div class="cell english" lang="en"><div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Hard problem</th>
+<th>Given and sought</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>Discrete logarithm (DLP)</strong></td>
+<td>Given g and gᵃ, recover a.</td>
+</tr>
+<tr>
+<td><strong>Computational DH (CDH)</strong></td>
+<td>Given g, gᵃ and gᵇ, compute gᵃᵇ.</td>
+</tr>
+<tr>
+<td><strong>Decisional DH (DDH)</strong></td>
+<td>Given g, gᵃ and gᵇ, decide whether another value is gᵃᵇ or an independent random group element.</td>
+</tr>
+</tbody></table></div>
+</div></div><div class="pair-row"><div class="cell" lang="zh-CN"><p>难算出值和难判断某个值是不是正确答案是不同的假设。交换中的公开幂本身也无法证明对方身份，证书和签名将在 L06 补齐认证。</p>
+</div><div class="cell english" lang="en"><p>Computing a value and deciding whether one is correct are distinct assumptions. The exchanged powers also need evidence of identity. L06 adds signatures and certificates.</p>
+</div></div><p class="source">原讲义 / Slides · <span class="source-ref" title="lec3_public.pdf">第 3–16 页</span></p></section><section class="lesson-section" id="rsa"><header class="section-head"><h2>RSA 密钥生成与模幂手算</h2><p class="en-heading" lang="en">RSA key generation and modular arithmetic</p></header><aside class="exam-callout" aria-label="旧卷高频考点"><span class="exam-badge">高频 · 5/5</span><a href="exam.html#rsa">RSA 与数字签名</a><p lang="en">RSA and digital signatures</p><ul class="evidence" aria-label="出现题号"><li><span class="source-ref" title="IERG4150_2021.pdf">2021–22 Q6 <small class="source-page">(PDF p. 7)</small></span></li><li><span class="source-ref" title="IERG4150_2022.pdf">2022–23 Q4 <small class="source-page">(PDF p. 6)</small></span></li><li><span class="source-ref" title="IERG4150_2023.pdf">2023–24 Q4 <small class="source-page">(PDF p. 10)</small></span></li><li><span class="source-ref" title="IERG4150_2024.pdf">2024–25 Q4 <small class="source-page">(PDF p. 6)</small></span></li><li><span class="source-ref" title="IERG4150_2025.pdf">2025–26 Q4 <small class="source-page">(PDF p. 7)</small></span></li></ul></aside><div class="pair-row"><div class="cell" lang="zh-CN"><ol>
+<li>取不同的大质数 p、q，设 n=pq。计算 φ(n)=(p−1)(q−1)。</li>
+<li>选择 e，使 gcd(e,φ(n))=1。求 d=e⁻¹ mod φ(n)，验证 ed≡1 (mod φ(n))。</li>
+<li>公钥是 (n,e)，私钥保管 d 和相关秘密参数。教科书运算 Mᵉ mod n 得 C，Cᵈ mod n 得 M。</li>
+</ol>
+</div><div class="cell english" lang="en"><ol>
+<li>Choose distinct large primes p and q and set n=pq. Compute φ(n)=(p−1)(q−1).</li>
+<li>Choose e coprime to φ(n). Find d=e⁻¹ mod φ(n), and check ed≡1 (mod φ(n)).</li>
+<li>Publish (n,e) and keep d and related secret parameters private. Textbook encryption computes C=Mᵉ mod n, and decryption computes M=Cᵈ mod n.</li>
+</ol>
+</div></div><div class="pair-row"><div class="cell" lang="zh-CN"><p><strong>手算例</strong>。p=17、q=11，得到 n=187、φ=160。e=7 时，扩展欧几里得先写 160=22×7+6、7=6+1，因此 1=23×7−160。得 d=23，并且 ed=161。若 M=88，逐步平方可得 M² mod n=77、M⁴ mod n=132。选 4+2+1 三项，(132×77×88) mod 187=11。以 d=23 解密得回 88。</p>
+</div><div class="cell english" lang="en"><p><strong>Worked example.</strong> For p=17 and q=11, n=187 and φ=160. With e=7, the extended Euclidean algorithm gives 160=22×7+6 and 7=6+1, so 1=23×7−160. Thus d=23 and ed=161. For M=88, repeated squaring gives M² mod n=77 and M⁴ mod n=132. The bits 4+2+1 select (132×77×88) mod 187=11. Raising 11 to d=23 returns 88 modulo 187.</p>
+</div></div><div class="pair-row"><div class="cell" lang="zh-CN"><p><strong>正确性的关键</strong>。ed=1+kφ(n)。若 gcd(M,n)=1，欧拉定理给出 M^φ(n)≡1，故 Mᵉᵈ≡M。若 M 可被 p 或 q 整除，分别在模 p 和模 q 下检查。余数为 0 的那一边仍是 0，非零一边用相应的有限群性质，两边再合并。例子中 88 与 n 有公因子 11，仍能正确解密。</p>
+</div><div class="cell english" lang="en"><p><strong>Why decryption works.</strong> We have ed=1+kφ(n). If gcd(M,n)=1, Euler&#39;s theorem gives M^φ(n)≡1, so Mᵉᵈ≡M. If M is divisible by p or q, check the two moduli separately. A zero residue stays zero, and a nonzero residue follows the corresponding finite-group argument. Combine the results. In the example, 88 shares factor 11 with n and still decrypts correctly.</p>
+</div></div><div class="pair-row"><div class="cell" lang="zh-CN"><p><strong>参数风险</strong>。仅知道 n 和 e 时，安全依赖正确选取参数和 RSA 反演的困难。生成质数重复会让两个模数共享因子。过小的私钥指数或异常接近的质数也会削弱安全。HW1 Q4–Q6 深入分析这两类参数问题。小公钥指数与小私钥指数承担不同风险。</p>
+</div><div class="cell english" lang="en"><p><strong>Parameter risks.</strong> With only n and e public, security relies on appropriate parameters and the hardness of inverting RSA. Repeated primes can make two moduli share a factor. An unusually small private exponent or very close primes can also weaken the scheme. HW1 Q4–Q6 analyze those cases. Small public and private exponents raise different issues.</p>
+</div></div><p class="source">原讲义 / Slides · <span class="source-ref" title="lec3_public.pdf">第 17–33 页</span></p></section><section class="lesson-section" id="oaep"><header class="section-head"><h2>裸 RSA、随机编码与混合加密</h2><p class="en-heading" lang="en">Textbook RSA, randomized encoding and hybrid encryption</p></header><aside class="exam-callout" aria-label="旧卷高频考点"><span class="exam-badge">高频 · 5/5</span><a href="exam.html#rsa">RSA 与数字签名</a><p lang="en">RSA and digital signatures</p><ul class="evidence" aria-label="出现题号"><li><span class="source-ref" title="IERG4150_2021.pdf">2021–22 Q6 <small class="source-page">(PDF p. 7)</small></span></li><li><span class="source-ref" title="IERG4150_2022.pdf">2022–23 Q4 <small class="source-page">(PDF p. 6)</small></span></li><li><span class="source-ref" title="IERG4150_2023.pdf">2023–24 Q4 <small class="source-page">(PDF p. 10)</small></span></li><li><span class="source-ref" title="IERG4150_2024.pdf">2024–25 Q4 <small class="source-page">(PDF p. 6)</small></span></li><li><span class="source-ref" title="IERG4150_2025.pdf">2025–26 Q4 <small class="source-page">(PDF p. 7)</small></span></li></ul></aside><div class="pair-row"><div class="cell" lang="zh-CN"><p><strong>裸 RSA（Textbook RSA）</strong> 在公钥相同、明文相同时一定产生相同密文。任何人都有公钥，因此可以加密候选消息并与观察到的结果比较。HW1 Q3 用 RSA 做两字母分组的教学例子，相同明文块产生相同密文块，和 ECB 暴露模式是一个道理。</p>
+</div><div class="cell english" lang="en"><p><strong>Textbook RSA</strong> produces the same ciphertext for the same key and message. Since the public key is available, anyone can encrypt candidates and compare the results with an observed ciphertext. HW1 Q3 uses RSA with two-letter blocks to illustrate the same repeated-block pattern as ECB.</p>
+</div></div><div class="pair-row"><div class="cell" lang="zh-CN"><p>讲义用 OpenSSL 的密钥和加解密示意区分公钥文件、私钥文件和密文。查看时可认出 n、e 可公开，d、p、q 要保管。导出公钥只包含公开部分。</p>
+</div><div class="cell english" lang="en"><p>The slides use OpenSSL examples to distinguish public-key files, private-key files and ciphertexts. Recognize n and e as public, with d, p and q kept secret. Exporting a public key includes only public components.</p>
+</div></div><div class="pair-row"><div class="cell" lang="zh-CN"><p><strong>OAEP（Optimal Asymmetric Encryption Padding）</strong> 先用随机种子和掩码编码，再对编码的整数做 RSA 运算。相同数据可得到不同编码。接收方要完整检查编码。讲义另介绍 PKCS #1 v1.5 的历史格式。实际长消息可做 <strong>混合加密（Hybrid Encryption）</strong>，用公钥方案保护一把随机对称密钥，再用对称认证加密处理正文。</p>
+</div><div class="cell english" lang="en"><p><strong>OAEP (Optimal Asymmetric Encryption Padding)</strong> encodes data using a random seed and masks before applying the RSA operation to the resulting integer. Repeated messages can have different encodings. The receiver performs the full encoding check. The slides also discuss the historical PKCS #1 v1.5 format. For long messages, <strong>hybrid encryption</strong> can protect a random symmetric key with a public-key mechanism and use symmetric authenticated encryption for the data.</p>
+</div></div><p class="source">原讲义 / Slides · <span class="source-ref" title="lec3_public.pdf">第 34–45 页</span></p></section><section class="lesson-section" id="elgamal"><header class="section-head"><h2>ElGamal 的随机掩码和可塑性</h2><p class="en-heading" lang="en">ElGamal randomness and malleability</p></header><aside class="exam-callout" aria-label="旧卷高频考点"><span class="exam-badge">高频 · 5/5</span><a href="exam.html#publicdh">ElGamal、DH 与随机性</a><p lang="en">ElGamal, DH and randomness</p><ul class="evidence" aria-label="出现题号"><li><span class="source-ref" title="IERG4150_2021.pdf">2021–22 Q7 <small class="source-page">(PDF p. 8)</small></span></li><li><span class="source-ref" title="IERG4150_2022.pdf">2022–23 Q5 <small class="source-page">(PDF p. 7)</small></span></li><li><span class="source-ref" title="IERG4150_2023.pdf">2023–24 Q5 <small class="source-page">(PDF p. 11)</small></span></li><li><span class="source-ref" title="IERG4150_2024.pdf">2024–25 Q5 <small class="source-page">(PDF p. 7)</small></span></li><li><span class="source-ref" title="IERG4150_2025.pdf">2025–26 Q5 <small class="source-page">(PDF p. 8)</small></span></li></ul></aside><div class="pair-row"><div class="cell" lang="zh-CN"><p>接收者私钥为 x、公钥为 Y=gˣ。发送者选新鲜随机数 k，计算 B=gᵏ 及 X=M·Yᵏ。接收者利用 Bˣ=Yᵏ 消去共享因子。两端用的是同一群的乘法，明文要先编码为群元素。</p>
+</div><div class="cell english" lang="en"><p>The recipient has private x and public Y=gˣ. The sender picks fresh random k and sends B=gᵏ and X=M·Yᵏ. The recipient uses Bˣ=Yᵏ to remove the shared factor. Both use multiplication in the same group, and the message is encoded as a group element.</p>
+</div></div><div class="pair-row"><div class="cell" lang="zh-CN"><p><strong>手算例</strong>。模 11，g=2、x=5 得 Y=10。对消息 7 取 k=3，B=8，掩码 Yᵏ=10，X=7×10 mod 11=4。接收者做 B⁵ mod 11=10，10 的逆元为 10，解出 4×10 mod 11=7。</p>
+</div><div class="cell english" lang="en"><p><strong>Worked example.</strong> Modulo 11, g=2 and x=5 give Y=10. For message 7 and k=3, B=8, the mask Yᵏ=10, and X=7×10 mod 11=4. The recipient computes B⁵ mod 11=10. Its inverse is 10, giving 4×10 mod 11=7.</p>
+</div></div><div class="pair-row"><div class="cell" lang="zh-CN"><p>同一 k 会重复同一掩码。判断掩码能否和随机值区分时，要说明使用的群和 DDH 等假设。<strong>可塑性（Malleability）</strong> 是指密文能发生一种结构性变化，使解密结果也按相关方式变化。裸 ElGamal 有乘法结构，保密性和抵抗主动修改要分别分析。<strong>选择密文安全（Chosen-Ciphertext Attack Security, CCA Security）</strong> 还考虑对手获得某些解密结果的情形。</p>
+</div><div class="cell english" lang="en"><p>Using the same k repeats the mask. Indistinguishability from randomness depends on the chosen group and assumptions such as DDH. <strong>Malleability</strong> means that a structural change to the ciphertext yields a related change to the decrypted value. Textbook ElGamal has a multiplicative structure, so confidentiality and resistance to active tampering need separate analysis. <strong>Chosen-ciphertext attack (CCA) security</strong> also considers access to certain decryption results.</p>
+</div></div><p class="source">原讲义 / Slides · <span class="source-ref" title="lec3_public.pdf">第 46–51 页</span></p></section><section class="lesson-section" id="groups"><header class="section-head"><h2>离散对数求解与 CRT</h2><p class="en-heading" lang="en">Discrete-log methods and the CRT</p></header><div class="pair-row"><div class="cell" lang="zh-CN"><p><strong>小步大步法（Baby-Step Giant-Step）</strong> 把指数拆为 iN+j。先存一张小步表，再用大步去找匹配项，使时间与存储大体和群阶的平方根同阶。<strong>Pohlig–Hellman</strong> 利用群阶的因子结构，把问题放进较小阶的子群分别求解，再用 <strong>中国剩余定理（Chinese Remainder Theorem, CRT）</strong> 合并。</p>
+</div><div class="cell english" lang="en"><p><strong>Baby-step giant-step</strong> writes an exponent as iN+j. It stores small powers and uses giant steps to find a match, using time and storage on the order of the square root of the group order. <strong>Pohlig–Hellman</strong> uses the factors of the group order to solve smaller subgroup problems, then combines their answers using the <strong>Chinese remainder theorem (CRT)</strong>.</p>
+</div></div><div class="pair-row"><div class="cell" lang="zh-CN"><p>CRT 练习。找 x，使得 x mod 3=2、x mod 5=3、x mod 7=2。第一个和第三个条件给出 x≡2 (mod 21)，候选是 2、23、44……。第二个条件选中 23。其他解和 23 相差 3×5×7 的整数倍。</p>
+</div><div class="cell english" lang="en"><p>CRT exercise. Find x with x mod 3=2, x mod 5=3 and x mod 7=2. The first and third conditions give x≡2 (mod 21), so the candidates include 2, 23 and 44. The second condition selects 23. Other solutions differ from 23 by multiples of 3×5×7.</p>
+</div></div><p class="source">原讲义 / Slides · <span class="source-ref" title="lec3_public.pdf">第 52–61 页</span></p></section><section class="lesson-section" id="signature"><header class="section-head"><h2>签名和加密分别是谁做的</h2><p class="en-heading" lang="en">Signing and encryption use different keys</p></header><aside class="exam-callout" aria-label="旧卷高频考点"><span class="exam-badge">高频 · 5/5</span><a href="exam.html#rsa">RSA 与数字签名</a><p lang="en">RSA and digital signatures</p><ul class="evidence" aria-label="出现题号"><li><span class="source-ref" title="IERG4150_2021.pdf">2021–22 Q6 <small class="source-page">(PDF p. 7)</small></span></li><li><span class="source-ref" title="IERG4150_2022.pdf">2022–23 Q4 <small class="source-page">(PDF p. 6)</small></span></li><li><span class="source-ref" title="IERG4150_2023.pdf">2023–24 Q4 <small class="source-page">(PDF p. 10)</small></span></li><li><span class="source-ref" title="IERG4150_2024.pdf">2024–25 Q4 <small class="source-page">(PDF p. 6)</small></span></li><li><span class="source-ref" title="IERG4150_2025.pdf">2025–26 Q4 <small class="source-page">(PDF p. 7)</small></span></li></ul></aside><div class="pair-row"><div class="cell" lang="zh-CN"><p><strong>数字签名（Digital Signature）</strong> 由签名者用自己的私钥生成，验证者用签名者的公钥验签。接收方还要核对签名覆盖的消息、上下文与身份。签名可以跟明文一起发送。</p>
+</div><div class="cell english" lang="en"><p>A <strong>digital signature</strong> is generated with the signer&#39;s private key and checked with that signer&#39;s public key. The verifier also checks the message, context and identity covered by the signature. The signed message can remain public.</p>
+</div></div><div class="pair-row"><div class="cell" lang="zh-CN"><div class="table-wrap"><table>
+<thead>
+<tr>
+<th>目的</th>
+<th>Alice 要发给 Bob 时</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>只有 Bob 能读</td>
+<td>Alice 用 Bob 的公钥保护消息或会话密钥。</td>
+</tr>
+<tr>
+<td>Bob 能验证来自 Alice</td>
+<td>Alice 用自己的私钥签名，Bob 用 Alice 的公钥检查。</td>
+</tr>
+</tbody></table></div>
+</div><div class="cell english" lang="en"><div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Goal</th>
+<th>Alice sends to Bob</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Only Bob can read it</td>
+<td>Alice protects the message or session key using Bob&#39;s public key.</td>
+</tr>
+<tr>
+<td>Bob can verify Alice sent it</td>
+<td>Alice signs with her private key. Bob checks with Alice&#39;s public key.</td>
+</tr>
+</tbody></table></div>
+</div></div><div class="pair-row"><div class="cell" lang="zh-CN"><p>教科书 RSA 签名用私钥幂处理消息代表值，验签用公钥幂。但普通签名接口是验证「给定消息、签名、公钥」是否匹配。不能从教科书例子推出所有签名都能恢复消息。实际 RSA 签名会先哈希消息，再使用签名专用编码。裸 RSA 的代数关系可能破坏抗伪造。<strong>选择消息攻击（Chosen-Message Attack）</strong> 模型允许对手见到选定消息的合法签名，再要求伪造未被签过的消息。</p>
+</div><div class="cell english" lang="en"><p>Textbook RSA signing applies the private exponent to a message representative and verification uses the public exponent. A general signature interface checks a supplied message, signature and public key for consistency. Message recovery does not follow from this interface. Practical RSA signatures hash the message and use a signature-specific encoding. Raw RSA&#39;s algebraic structure can undermine unforgeability. In a <strong>chosen-message attack</strong>, the adversary may see signatures on selected messages and is challenged to produce a signature on a fresh one.</p>
+</div></div><p class="source">原讲义 / Slides · <span class="source-ref" title="lec3_public.pdf">第 62–69 页</span></p></section><section class="quiz" id="self-check"><header class="section-head"><h2>合上讲义自测</h2><p class="en-heading" lang="en">Check your understanding</p></header><div class="pair-row"><div class="cell" lang="zh-CN"><ol>
+<li>按扩展欧几里得求 e=7 在模 160 下的逆元并验证。</li>
+<li>DH 的公开幂属于谁，应该由哪个机制证明？</li>
+<li>验证了 Alice 的签名以后，能否断定文件只有 Bob 能读？</li>
+</ol>
+</div><div class="cell english" lang="en"><ol>
+<li>Use the extended Euclidean algorithm to find and check the inverse of 7 modulo 160.</li>
+<li>What mechanism can establish who sent a DH public value?</li>
+<li>After verifying Alice&#39;s signature, can Bob conclude only he can read the file?</li>
+</ol>
+</div></div><details><summary>查看答案 / Show answers</summary><div class="pair-row"><div class="cell" lang="zh-CN"><ol>
+<li>160=22×7+6，7=6+1，所以 1=23×7−160。逆元 23。</li>
+<li>通过签名等身份认证机制绑定交换内容，并可信地取得验证公钥，例如用证书链。</li>
+<li>签名证明覆盖的消息与签名公钥匹配。保密还需要加密给 Bob。</li>
+</ol>
+</div><div class="cell english" lang="en"><ol>
+<li>160=22×7+6 and 7=6+1 imply 1=23×7−160. The inverse is 23.</li>
+<li>Bind the exchange to an identity with a signature or another authentication mechanism, and obtain the verification key from a trusted source such as a certificate chain.</li>
+<li>The signature establishes consistency with Alice&#39;s signing key. Confidentiality requires separate encryption for Bob.</li>
+</ol>
+</div></div></details></section><nav class="bottom" aria-label="讲次切换"><a href="l02.html">上一讲 · L02</a><a href="index.html">返回目录</a><a href="l04.html">下一讲 · L04</a></nav></main></body></html>

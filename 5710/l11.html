@@ -1,0 +1,89 @@
+<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>L11 无线局域网与蜂窝安全 · IEMS5710A</title><link rel="stylesheet" href="reader.css"></head><body><header class="top"><nav aria-label="课程导航"><a href="index.html">5710 双语讲义</a><a href="exam.html">高频考点</a><span class="current">L11 无线局域网与蜂窝安全</span></nav></header><main><header class="hero"><p class="eyebrow">IEMS5710A · L11</p><h1>无线局域网与蜂窝安全</h1><p class="en-heading" lang="en">Wireless LAN and cellular security</p><div class="intro"><div class="pair-row"><div class="cell" lang="zh-CN"><p>有线网络从一个端口到另一个端口，无线电信号还会传播到附近的设备。Wi-Fi 保护链路的同时，应用仍有自己的端到端边界。蜂窝课件另用短信说明，数据很短也可能消耗许多控制资源。</p>
+</div><div class="cell english" lang="en"><p>A wired network forwards from port to port, while radio signals also reach nearby equipment. Wi-Fi protects a link and applications retain their end-to-end boundaries. The cellular examples show how short messages can consume substantial control resources.</p>
+</div></div></div></header><details class="jump" open><summary>本讲目录 / In this lecture</summary><nav aria-label="本讲目录"><ul><li><a href="#lan">Wi-Fi 从发现接入点到获得 IP</a></li><li><a href="#listen">观察无线帧与保护范围</a></li><li><a href="#wifi">WEP、WPA、WPA2 和企业认证</a></li><li><a href="#cellular">蜂窝短信的路由与信令</a></li><li><a href="#self-check">自测</a></li></ul></nav></details><div class="language-header"><span>中文讲解</span><span lang="en">English explanation</span></div><section class="lesson-section" id="lan"><header class="section-head"><h2>Wi-Fi 从发现接入点到获得 IP</h2><p class="en-heading" lang="en">From discovering an access point to getting an IP address</p></header><div class="pair-row"><div class="cell" lang="zh-CN"><p><strong>无线局域网（Wireless LAN, WLAN）</strong> 的课件例子使用 IEEE 802.11。较早的 a/b/g/n 版本使用不同频段、调制和天线配置。<strong>载波侦听多路访问与冲突避免（CSMA/CA）</strong> 协调共享信道。设备发送前先判断信道，必要时等待再尝试，而不是每台设备独占无线媒介。</p>
+</div><div class="cell english" lang="en"><p>The slides use IEEE 802.11 for a <strong>wireless LAN (WLAN)</strong>. Earlier a/b/g/n versions differ in bands, modulation and antenna behavior. <strong>Carrier sense multiple access with collision avoidance (CSMA/CA)</strong> coordinates the shared channel. A station checks the channel and can wait before trying to transmit. The radio medium is shared.</p>
+</div></div><div class="pair-row"><div class="cell" lang="zh-CN"><p>在 <strong>基础设施模式（Infrastructure Mode）</strong> 里，终端关联 <strong>接入点（Access Point, AP）</strong>。AP 与关联的终端组成一个 <strong>基本服务集（Basic Service Set, BSS）</strong>。在自组织场景，设备也可能直接交换帧。关联前，终端扫描信道并听 <strong>信标帧（Beacon Frame）</strong>，获取 <strong>服务集标识符（Service Set Identifier, SSID）</strong> 等信息。选择接入点后还要按网络配置认证、关联，再通过 DHCP 等取得 IP 配置。SSID 只是宣告的名字。</p>
+</div><div class="cell english" lang="en"><p>In <strong>infrastructure mode</strong>, a station associates with an <strong>access point (AP)</strong>. The AP and associated stations form a <strong>basic service set (BSS)</strong>. In an ad hoc network, stations can exchange frames directly. Before association a station discovers APs by scanning channels and reading <strong>beacon frames</strong>, which include a <strong>service set identifier (SSID)</strong>. It then authenticates and associates as configured and obtains IP settings, for example through DHCP. An SSID is an advertised name.</p>
+</div></div><div class="pair-row"><div class="cell" lang="zh-CN"><p><strong>地址例子</strong>。终端访问外网时，无线当前一跳的接收者是 AP，实际要转交的链路目的可能是路由器。802.11 根据帧中的方向标志解释多组地址。设备在同一子网 <strong>漫游（Roaming）</strong> 时可以保留 IP，交换机从新的路径更新终端的 MAC 所在位置。</p>
+</div><div class="cell english" lang="en"><p><strong>Address example.</strong> When a station reaches an external network, the AP receives the current wireless hop while a router may be the link destination beyond it. The direction flags determine how fields in a multi-address 802.11 frame are read. A station <strong>roaming</strong> within one subnet can keep its IP while switches relearn its MAC on a new path.</p>
+</div></div><p class="source">原讲义 / Slides · <span class="source-ref" title="lec11_wireless.pdf">第 2–12 页</span></p></section><section class="lesson-section" id="listen"><header class="section-head"><h2>观察无线帧与保护范围</h2><p class="en-heading" lang="en">Observing wireless frames and locating protection</p></header><div class="pair-row"><div class="cell" lang="zh-CN"><p><strong>监控模式（Monitor Mode）</strong> 可观察选定信道上接收到的 802.11 帧，包括管理帧。<strong>混杂模式（Promiscuous Mode）</strong> 是在接口本身的接收路径上扩大交付范围，两者看到的帧不完全相同。是否能解读正文还要看链路的加密与认证。</p>
+</div><div class="cell english" lang="en"><p><strong>Monitor mode</strong> can observe received 802.11 frames on a selected channel, including management frames. <strong>Promiscuous mode</strong> changes what an interface passes along on its own receive path. The visible frame sets can differ, and readable contents still depend on encryption and authentication.</p>
+</div></div><div class="pair-row"><div class="cell" lang="zh-CN"><p>将 AP 放在防火墙不同侧会影响终端能到达哪些服务，却不会改变电波覆盖。<strong>链路加密（Link-Layer Encryption）</strong> 只保护相应无线链路。AP 到外网之后的应用数据，仍可由 HTTPS 或 VPN 在各自范围内保护。</p>
+</div><div class="cell english" lang="en"><p>Placing the AP on one side or another of a firewall changes which services stations can reach. It does not change where radio signals propagate. <strong>Link-layer encryption</strong> protects the relevant wireless link. Beyond the AP, HTTPS or a VPN can protect traffic within its own scope.</p>
+</div></div><p class="source">原讲义 / Slides · <span class="source-ref" title="lec11_wireless.pdf">第 13–16 页</span></p></section><section class="lesson-section" id="wifi"><header class="section-head"><h2>WEP、WPA、WPA2 和企业认证</h2><p class="en-heading" lang="en">WEP, WPA, WPA2 and enterprise authentication</p></header><div class="pair-row"><div class="cell" lang="zh-CN"><div class="table-wrap"><table>
+<thead>
+<tr>
+<th>机制</th>
+<th>讲义要掌握的设计与局限</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>WEP（Wired Equivalent Privacy）</strong></td>
+<td>RC4 根据共享密钥和公开的 24 位 IV 生成密钥流。短 IV 可能重复，同一输入产生相同掩码。CRC-32 主要用于发现传输差错，缺少带秘密的认证。</td>
+</tr>
+<tr>
+<td><strong>WPA / TKIP</strong></td>
+<td>过渡方案。为兼容旧硬件保留 RC4，改进逐包密钥混合、序列检查与消息完整性码。</td>
+</tr>
+<tr>
+<td><strong>WPA2 / CCMP</strong></td>
+<td>讲义着重介绍基于 AES 的 CCMP，将计数器加密与 CBC-MAC 类认证组合。保护的是无线数据帧。</td>
+</tr>
+</tbody></table></div>
+</div><div class="cell english" lang="en"><div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Mechanism</th>
+<th>Design point and limitation</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>WEP (Wired Equivalent Privacy)</strong></td>
+<td>RC4 derives a keystream from a shared key and a public 24-bit IV. A small IV can repeat and recreate a mask. CRC-32 is for accidental error detection and does not provide keyed authentication.</td>
+</tr>
+<tr>
+<td><strong>WPA / TKIP</strong></td>
+<td>Transitional design. Retains RC4 for older hardware and improves per-packet key mixing, sequence checks and the message integrity code.</td>
+</tr>
+<tr>
+<td><strong>WPA2 / CCMP</strong></td>
+<td>The slides stress AES-based CCMP, which combines counter-mode encryption with CBC-MAC-based authentication for data frames.</td>
+</tr>
+</tbody></table></div>
+</div></div><div class="pair-row"><div class="cell" lang="zh-CN"><p><strong>预共享密钥（Pre-Shared Key, PSK）</strong> 是家用等场景的一种方式，弱口令会降低保密性。企业场景可以经 <strong>802.1X</strong> 控制接入。终端与 AP 之间用 <strong>EAPOL（EAP over LAN）</strong> 传 <strong>EAP（Extensible Authentication Protocol）</strong> 消息，AP 常经 <strong>RADIUS</strong> 与后端认证服务通信。认证完成以后，才建立和使用相应的数据保护状态。</p>
+</div><div class="cell english" lang="en"><p>A <strong>pre-shared key (PSK)</strong> is one option for home networks. A weak passphrase undermines confidentiality. Enterprise networks can use <strong>802.1X</strong> for access control. The station and AP carry <strong>Extensible Authentication Protocol (EAP)</strong> over LAN using <strong>EAPOL</strong>, and the AP can talk to a backend authentication server over <strong>RADIUS</strong>. Successful authentication precedes use of the relevant data protection state.</p>
+</div></div><div class="pair-row"><div class="cell" lang="zh-CN"><p>把 <strong>帧保密</strong>、<strong>接入身份</strong> 与 <strong>空口可用性</strong> 分开。MAC 地址便于识别转发对象，身份要由认证协议证明。即使数据帧加密，共享信道仍可能被干扰或过度占用。课堂用 <strong>RTS/CTS</strong> 说明协调空口的控制消息也关系到可用性。</p>
+</div><div class="cell english" lang="en"><p>Separate <strong>frame confidentiality</strong>, <strong>access identity</strong> and <strong>availability of the radio channel</strong>. MAC addresses identify forwarding destinations, while authentication establishes identity. A shared channel can be interrupted or overused even when data frames are encrypted. <strong>RTS/CTS</strong> illustrates why media coordination also affects availability.</p>
+</div></div><p class="source">原讲义 / Slides · <span class="source-ref" title="lec11_wireless.pdf">第 17–28 页</span></p></section><section class="lesson-section" id="cellular"><header class="section-head"><h2>蜂窝短信的路由与信令</h2><p class="en-heading" lang="en">Cellular SMS routing and signaling</p></header><div class="pair-row"><div class="cell" lang="zh-CN"><p>讲义用传统 GSM/SMS 结构来解释 SMS 交付。一个 SMS 可由终端或 <strong>外部短信实体（ESME）</strong> 发起，进入 <strong>短信中心（Short Message Service Center, SMSC）</strong>。SMSC 负责暂存与路由。<strong>HLR（Home Location Register）</strong> 包含长期订阅信息，<strong>VLR（Visitor Location Register）</strong> 保存当前服务区的相关信息。<strong>MSC（Mobile Switching Center）</strong> 处理交换和路由，<strong>基站（Base Station, BS）</strong> 完成空口交付。</p>
+</div><div class="cell english" lang="en"><p>The slides illustrate SMS delivery using a traditional GSM architecture. A phone or an <strong>external short message entity (ESME)</strong> submits a message to a <strong>Short Message Service Center (SMSC)</strong>, which stores and routes it. The <strong>Home Location Register (HLR)</strong> holds long-term subscription data, while the <strong>Visitor Location Register (VLR)</strong> holds serving-area information. A <strong>Mobile Switching Center (MSC)</strong> manages switching and routing, and a <strong>base station (BS)</strong> delivers over the air.</p>
+</div></div><div class="pair-row"><div class="cell" lang="zh-CN"><blockquote>
+<p>外部入口 → SMSC → 获取路由信息 → MSC → 基站 → 手机。</p>
+</blockquote>
+</div><div class="cell english" lang="en"><blockquote>
+<p>External input → SMSC → routing lookup → MSC → base station → handset.</p>
+</blockquote>
+</div></div><div class="pair-row"><div class="cell" lang="zh-CN"><p><strong>控制信道（Control Channel, CCH）</strong> 承载寻呼、接入、认证等信令，和承载通话等业务的数据资源有区别。课件中终端在 <strong>PCH（Paging Channel）</strong> 收到提示，经 <strong>RACH（Random Access Channel）</strong> 响应。系统为后续认证和交付分配 <strong>SDCCH（Standalone Dedicated Control Channel）</strong>，可能包含临时身份更新。</p>
+</div><div class="cell english" lang="en"><p>A <strong>control channel (CCH)</strong> carries signaling such as paging, access and authentication, distinct from the resources for user traffic such as a call. In the slides the phone is notified on the <strong>paging channel (PCH)</strong> and responds over the <strong>random access channel (RACH)</strong>. The system can assign a <strong>standalone dedicated control channel (SDCCH)</strong> for authentication and delivery, potentially including a temporary identity update.</p>
+</div></div><div class="pair-row"><div class="cell" lang="zh-CN"><p><strong>容量判断</strong>。一条短短信仍可能需要多个信令步骤。SMSC 缓冲区已满时可能排队或丢弃消息。空口控制资源忙时，数据负载看起来小也可能处理不动新会话。故障分析应分别观察消息队列、空口信令会话和业务流量。这里的信道名称对应课件的传统系统。</p>
+</div><div class="cell english" lang="en"><p><strong>Capacity reasoning.</strong> A short SMS can still require multiple signaling steps. A full SMSC queue can delay or drop messages. Busy air-interface control resources can limit new sessions even with small payloads. Examine message queues, signaling sessions and user traffic separately. The named channels here follow the traditional system shown in class.</p>
+</div></div><p class="source">原讲义 / Slides · <span class="source-ref" title="lec11_wireless.pdf">第 29–37 页</span></p></section><section class="quiz" id="self-check"><header class="section-head"><h2>合上讲义自测</h2><p class="en-heading" lang="en">Check your understanding</p></header><div class="pair-row"><div class="cell" lang="zh-CN"><ol>
+<li>WEP 中 IV 重复和使用 CRC-32 分别影响哪项安全属性？</li>
+<li>手机和 AP 使用 WPA2，HTTPS 仍然保护哪段通信？</li>
+<li>为什么统计短信字节数不能准确估计传统蜂窝信令压力？</li>
+</ol>
+</div><div class="cell english" lang="en"><ol>
+<li>Which properties are affected by repeated IVs and by CRC-32 in WEP?</li>
+<li>With WPA2 on the phone-to-AP link, which segment does HTTPS protect?</li>
+<li>Why are SMS bytes an incomplete measure of traditional cellular signaling load?</li>
+</ol>
+</div></div><details><summary>查看答案 / Show answers</summary><div class="pair-row"><div class="cell" lang="zh-CN"><ol>
+<li>IV 重复会重复密钥流，泄露明文关系，影响保密性。CRC-32 没有秘密，无法提供足够的消息认证和主动篡改保护。</li>
+<li>HTTPS 从浏览器到认证过的网站端点保护应用内容。</li>
+<li>每条消息还有寻呼、接入与控制信道分配。瓶颈可能是并发信令会话或 SMSC 队列。</li>
+</ol>
+</div><div class="cell english" lang="en"><ol>
+<li>IV reuse repeats the keystream and exposes plaintext relationships. CRC-32 has no secret and does not provide adequate authentication against active modification.</li>
+<li>HTTPS protects application data from the browser to the authenticated website.</li>
+<li>Each message may also need paging, access and a control-channel session. The bottleneck can be signaling concurrency or the SMSC queue.</li>
+</ol>
+</div></div></details></section><nav class="bottom" aria-label="讲次切换"><a href="l10.html">上一讲 · L10</a><a href="index.html">返回目录</a></nav></main></body></html>

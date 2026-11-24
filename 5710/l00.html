@@ -1,0 +1,167 @@
+<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>L00 课程导论与安全基础 · IEMS5710A</title><link rel="stylesheet" href="reader.css"></head><body><header class="top"><nav aria-label="课程导航"><a href="index.html">5710 双语讲义</a><a href="exam.html">高频考点</a><span class="current">L00 课程导论与安全基础</span></nav></header><main><header class="hero"><p class="eyebrow">IEMS5710A · L00</p><h1>课程导论与安全基础</h1><p class="en-heading" lang="en">Orientation and security fundamentals</p><div class="intro"><div class="pair-row"><div class="cell" lang="zh-CN"><p>想象你用公共 Wi-Fi 登录学校网站。附近的人可能观察无线流量，网络可能把数据送到错误地址，浏览器也可能在你不知情时发出请求。要评估风险，先确定 <strong>要保护的对象</strong>，再问 <strong>攻击者能做什么</strong>，最后决定 <strong>在哪一层验证</strong>。</p>
+</div><div class="cell english" lang="en"><p>Imagine signing in to the university website over public Wi-Fi. Someone nearby may observe the radio traffic, the network may send packets to an unexpected address, and your browser may make a request you did not intend. Identify <strong>what needs protection</strong>, <strong>what the attacker can do</strong>, and <strong>which layer should perform the check</strong>.</p>
+</div></div></div></header><details class="jump" open><summary>本讲目录 / In this lecture</summary><nav aria-label="本讲目录"><ul><li><a href="#goals">安全目标与威胁模型</a></li><li><a href="#primitives">明文、密文与密钥</a></li><li><a href="#layers">一次登录经过哪些安全边界</a></li><li><a href="#self-check">自测</a></li></ul></nav></details><div class="language-header"><span>中文讲解</span><span lang="en">English explanation</span></div><section class="lesson-section" id="goals"><header class="section-head"><h2>安全目标与威胁模型</h2><p class="en-heading" lang="en">Security goals and threat models</p></header><div class="pair-row"><div class="cell" lang="zh-CN"><p><strong>威胁模型（Threat Model）</strong> 明确攻击者的能力和系统的目标。同一个邮箱，面对只观察流量的旁观者、能修改请求的中间人和已经控制账号的人，需要不同的保护。作答时把能力写成具体操作，再判断系统还能信任哪些数据。</p>
+</div><div class="cell english" lang="en"><p>A <strong>threat model</strong> states the attacker&#39;s capabilities and the system&#39;s goals. An email service needs different protections against a traffic observer, an intermediary who can change messages, and someone who already controls an account. State the capabilities in concrete terms and identify which data can still be trusted.</p>
+</div></div><div class="pair-row"><div class="cell" lang="zh-CN"><div class="table-wrap"><table>
+<thead>
+<tr>
+<th>安全目标</th>
+<th>要问的问题</th>
+<th>例子</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>保密性（Confidentiality）</strong></td>
+<td>无权的人能读内容吗？</td>
+<td>旁观者读不到邮件正文。</td>
+</tr>
+<tr>
+<td><strong>完整性（Integrity）</strong></td>
+<td>数据被改动后能否发现？</td>
+<td>服务器拒绝被篡改的转账金额。</td>
+</tr>
+<tr>
+<td><strong>可用性（Availability）</strong></td>
+<td>合法用户需要时还能用吗？</td>
+<td>重复请求耗尽连接会影响可用性。</td>
+</tr>
+<tr>
+<td><strong>身份认证（Authentication）</strong></td>
+<td>谁在声明身份或发送消息？</td>
+<td>浏览器确认服务器代表访问的域名。</td>
+</tr>
+<tr>
+<td><strong>不可否认性（Non-repudiation）</strong></td>
+<td>有何证据归属某项操作？</td>
+<td>第三方可验证某人的文件签名。</td>
+</tr>
+</tbody></table></div>
+</div><div class="cell english" lang="en"><div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Goal</th>
+<th>Question</th>
+<th>Example</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>Confidentiality</strong></td>
+<td>Who can read the data?</td>
+<td>An observer cannot read the email body.</td>
+</tr>
+<tr>
+<td><strong>Integrity</strong></td>
+<td>Can a change be detected?</td>
+<td>The server rejects an altered payment amount.</td>
+</tr>
+<tr>
+<td><strong>Availability</strong></td>
+<td>Can legitimate users obtain service when needed?</td>
+<td>Duplicate requests can exhaust connection capacity.</td>
+</tr>
+<tr>
+<td><strong>Authentication</strong></td>
+<td>Who is making the claim or sending the message?</td>
+<td>A browser checks that the server represents the requested domain.</td>
+</tr>
+<tr>
+<td><strong>Non-repudiation</strong></td>
+<td>What evidence attributes an action to someone?</td>
+<td>A third party can verify a document signature.</td>
+</tr>
+</tbody></table></div>
+</div></div><div class="pair-row"><div class="cell" lang="zh-CN"><p>前三项简称 <strong>CIA</strong>。<strong>被动攻击（Passive Attack）</strong> 只观察，如窃听与流量分析。<strong>主动攻击（Active Attack）</strong> 会修改、注入、阻断或重放数据。即使正文加密，时间和长度有时仍可观察。题目若问「这个系统安全吗」，先说明考虑哪类攻击和哪项安全目标。</p>
+</div><div class="cell english" lang="en"><p>The first three form the <strong>CIA triad</strong>. A <strong>passive attack</strong> observes, as in eavesdropping or traffic analysis. An <strong>active attack</strong> modifies, injects, blocks, or replays data. Timing and length are sometimes observable even when the body is encrypted. When asked whether a system is secure, specify the attack model and the property under evaluation.</p>
+</div></div><p class="source">原讲义 / Slides · <span class="source-ref" title="lec0_intro.pdf">第 13–19 页</span></p></section><section class="lesson-section" id="primitives"><header class="section-head"><h2>明文、密文与密钥</h2><p class="en-heading" lang="en">Plaintext, ciphertext and keys</p></header><div class="pair-row"><div class="cell" lang="zh-CN"><p>发送者以 <strong>明文（Plaintext）</strong> M 和 <strong>密钥（Key）</strong> K 为输入，经 <strong>加密（Encryption）</strong> 得到 <strong>密文（Ciphertext）</strong> C。接收者用正确的密钥执行 <strong>解密（Decryption）</strong> 恢复 M。<strong>正确性（Correctness）</strong> 回答合法收发双方能不能还原。<strong>保密性（Secrecy）</strong> 回答观察者能从密文推断多少。</p>
+</div><div class="cell english" lang="en"><p>The sender takes a <strong>plaintext</strong> M and <strong>key</strong> K, applies <strong>encryption</strong>, and produces a <strong>ciphertext</strong> C. The receiver uses the appropriate key and <strong>decryption</strong> to recover M. <strong>Correctness</strong> asks whether the intended parties recover the message. <strong>Secrecy</strong> concerns how much an observer can infer from the ciphertext.</p>
+</div></div><div class="pair-row"><div class="cell" lang="zh-CN"><p><strong>凯撒密码（Caesar Cipher）</strong> 固定移动字母。把 A 编为 0、Z 编为 25，密钥 3 让 E 的编号 4 变成 7，也就是 H。Y 的编号 24 加 3 后模 26 等于 1，也就是 B。只有少量移位可以尝试，字母频率也只发生平移。因此可逆并且看起来像乱码，仍可能很容易被分析。</p>
+</div><div class="cell english" lang="en"><p>A <strong>Caesar cipher</strong> shifts every letter by a fixed amount. Number A as 0 and Z as 25. With shift 3, E moves from 4 to 7, or H. Y has value 24, and adding 3 modulo 26 gives 1, or B. There are few shifts to try, and letter frequencies merely change position. A reversible but unreadable-looking result may remain easy to analyze.</p>
+</div></div><div class="pair-row"><div class="cell" lang="zh-CN"><div class="table-wrap"><table>
+<thead>
+<tr>
+<th>机制</th>
+<th>基本思路</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>流密码（Stream Cipher）</strong></td>
+<td>产生密钥流并逐段与消息组合。L01 讨论复用。</td>
+</tr>
+<tr>
+<td><strong>分组密码（Block Cipher）</strong></td>
+<td>对固定长度的块做可逆变换。L02 讨论怎样处理多块。</td>
+</tr>
+<tr>
+<td><strong>对称密钥（Symmetric Key）</strong></td>
+<td>两端共享秘密。n 人两两用不同密钥，共有 n(n−1)/2 对。</td>
+</tr>
+<tr>
+<td><strong>公钥机制（Public-Key Mechanism）</strong></td>
+<td>公布公钥，私钥由持有者保管。L03 用 DH、RSA 和签名说明用途。</td>
+</tr>
+</tbody></table></div>
+</div><div class="cell english" lang="en"><div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Mechanism</th>
+<th>Basic idea</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>Stream cipher</strong></td>
+<td>Generate a keystream and combine it with the message in pieces. L01 discusses reuse.</td>
+</tr>
+<tr>
+<td><strong>Block cipher</strong></td>
+<td>Transform a fixed-size block reversibly. L02 covers multiple blocks.</td>
+</tr>
+<tr>
+<td><strong>Symmetric key</strong></td>
+<td>The parties share a secret. Giving every pair among n people a distinct key takes n(n−1)/2 keys.</td>
+</tr>
+<tr>
+<td><strong>Public-key mechanism</strong></td>
+<td>Publish a public key while its owner keeps the private key. L03 illustrates DH, RSA and signatures.</td>
+</tr>
+</tbody></table></div>
+</div></div><div class="pair-row"><div class="cell" lang="zh-CN"><p>现代密码学明确困难假设，如整数分解和离散对数。公开算法可以接受检验，安全性依靠密钥、参数和协议设计。实际系统常用公钥机制建立会话密钥，再用对称方案保护大量数据。</p>
+</div><div class="cell english" lang="en"><p>Modern cryptography makes hardness assumptions explicit, such as integer factorization or discrete logarithms. A public algorithm can be inspected, while security depends on keys, parameters and protocol design. Many systems establish a session key with a public-key mechanism and protect bulk data with symmetric operations.</p>
+</div></div><p class="source">原讲义 / Slides · <span class="source-ref" title="lec0_intro.pdf">第 20–42 页</span></p></section><section class="lesson-section" id="layers"><header class="section-head"><h2>一次登录经过哪些安全边界</h2><p class="en-heading" lang="en">Security boundaries during a login</p></header><div class="pair-row"><div class="cell" lang="zh-CN"><p><strong>手机 → 无线接入点 → 网关 → 互联网 → 网站</strong></p>
+</div><div class="cell english" lang="en"><p><strong>Phone → wireless access point → gateway → Internet → website</strong></p>
+</div></div><div class="pair-row"><div class="cell" lang="zh-CN"><ol>
+<li><strong>链路安全（Link Security）</strong> 在无线终端与接入点之间起作用。经过下一跳时，会有另一条链路。</li>
+<li><strong>域名系统（DNS）</strong> 把名字解析成记录。能找到地址以后，还要确认地址上的服务器是谁。</li>
+<li><strong>传输层安全协议（TLS）</strong> 验证对端并保护应用数据。HTTPS 就是在 TLS 中传 HTTP。</li>
+<li><strong>Web 会话（Web Session）</strong> 关联登录状态。网站还要验证修改资料等请求来自合法交互。</li>
+<li><strong>进程内存（Process Memory）</strong> 属于程序的运行环境。数据安全送达之后，接收代码仍要检查长度与格式。</li>
+</ol>
+</div><div class="cell english" lang="en"><ol>
+<li><strong>Link security</strong> can protect the hop between a wireless device and its access point. The next hop is a separate link.</li>
+<li>The <strong>Domain Name System (DNS)</strong> resolves names to records. Having an address leaves the peer&#39;s identity to be established.</li>
+<li><strong>Transport Layer Security (TLS)</strong> authenticates the peer and protects application data. HTTPS carries HTTP inside TLS.</li>
+<li>A <strong>web session</strong> associates requests with sign-in state. A website still checks whether a change of account details comes from an authorized interaction.</li>
+<li><strong>Process memory</strong> belongs to the application runtime. Secure delivery still leaves the receiver responsible for length and format checks.</li>
+</ol>
+</div></div><div class="pair-row"><div class="cell" lang="zh-CN"><p>机制的保护范围也不同。<strong>消息认证码（MAC）</strong> 让共享密钥的双方核验一条消息。<strong>数字签名（Digital Signature）</strong> 允许有公钥的人验签。<strong>虚拟专用网络（VPN）</strong> 保护被路由进隧道的流量。看后续章节时，每看到一种防御就说出它检查的对象和信任来源。</p>
+</div><div class="cell english" lang="en"><p>The mechanisms also differ in scope. A <strong>message authentication code (MAC)</strong> lets parties sharing a key verify messages. A <strong>digital signature</strong> can be checked by anyone with the signer&#39;s public key. A <strong>virtual private network (VPN)</strong> protects traffic routed through its tunnel. In later chapters, identify what every defense checks and where its trust comes from.</p>
+</div></div><p class="source">原讲义 / Slides · <span class="source-ref" title="lec0_intro.pdf">第 43–62 页</span></p></section><section class="quiz" id="self-check"><header class="section-head"><h2>合上讲义自测</h2><p class="en-heading" lang="en">Check your understanding</p></header><div class="pair-row"><div class="cell" lang="zh-CN"><ol>
+<li>网站可以访问，但可能是冒充的。首先要核对哪项安全目标？</li>
+<li>手机到 AP 有 Wi-Fi 加密。浏览器和网站之间用什么保护应用数据？</li>
+<li>为什么凯撒密码可以正确解密，却不能靠这一点证明安全？</li>
+</ol>
+</div><div class="cell english" lang="en"><ol>
+<li>A site is reachable but its identity might be false. Which security goal should be checked first?</li>
+<li>Wi-Fi protects the phone-to-AP link. What can protect application data between the browser and the website?</li>
+<li>Why does correct Caesar decryption fail to establish secrecy?</li>
+</ol>
+</div></div><details><summary>查看答案 / Show answers</summary><div class="pair-row"><div class="cell" lang="zh-CN"><ol>
+<li>先核验 <strong>身份认证</strong>。可访问只说明当前服务可用。</li>
+<li>用正确验证网站身份的 TLS。</li>
+<li>加解密关系能还原，但攻击者也能试遍候选移位。</li>
+</ol>
+</div><div class="cell english" lang="en"><ol>
+<li>Check <strong>authentication</strong> first. Reachability shows availability in this instance.</li>
+<li>Use TLS with correct authentication of the website.</li>
+<li>The receiver can invert the shift, and an observer can also enumerate possible shifts.</li>
+</ol>
+</div></div></details></section><nav class="bottom" aria-label="讲次切换"><a href="index.html">返回目录</a><a href="l01.html">下一讲 · L01</a></nav></main></body></html>

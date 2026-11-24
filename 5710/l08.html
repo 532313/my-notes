@@ -1,0 +1,147 @@
+<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>L08 TCP、TLS 与 VPN · IEMS5710A</title><link rel="stylesheet" href="reader.css"></head><body><header class="top"><nav aria-label="课程导航"><a href="index.html">5710 双语讲义</a><a href="exam.html">高频考点</a><span class="current">L08 TCP、TLS 与 VPN</span></nav></header><main><header class="hero"><p class="eyebrow">IEMS5710A · L08</p><h1>TCP、TLS 与 VPN</h1><p class="en-heading" lang="en">TCP, TLS and VPNs</p><div class="intro"><div class="pair-row"><div class="cell" lang="zh-CN"><p>TCP 让两端按顺序收到字节。TLS 在连接上协商密钥、验证对端并保护数据。VPN 可以把原本单独发送的整个 IP 包放入受保护通道。这三个机制常同时出现。</p>
+</div><div class="cell english" lang="en"><p>TCP delivers bytes in order. TLS negotiates keys, authenticates peers and protects data on a connection. A VPN can carry whole IP packets over a protected channel. These mechanisms often appear together.</p>
+</div></div></div></header><details class="jump" open><summary>本讲目录 / In this lecture</summary><nav aria-label="本讲目录"><ul><li><a href="#tcp">TCP 序列号怎样数到下一字节</a></li><li><a href="#handshake">TLS 1.2 握手逐步读</a></li><li><a href="#record">记录、会话与恢复</a></li><li><a href="#vpn">VPN 如何携带一个完整 IP 包</a></li><li><a href="#self-check">自测</a></li></ul></nav></details><div class="language-header"><span>中文讲解</span><span lang="en">English explanation</span></div><section class="lesson-section" id="tcp"><header class="section-head"><h2>TCP 序列号怎样数到下一字节</h2><p class="en-heading" lang="en">How TCP sequence numbers count bytes</p></header><div class="pair-row"><div class="cell" lang="zh-CN"><p>TCP 连接的 <strong>四元组（Four-Tuple）</strong> 是源 IP、源端口、目的 IP、目的端口。<strong>序列号（Sequence Number, SEQ）</strong> 指这段数据的第一个字节位置，<strong>确认号（Acknowledgment Number, ACK）</strong> 告诉发送者下一步期待哪个字节。TCP 传的是字节流，应用需要自己定义消息边界。</p>
+</div><div class="cell english" lang="en"><p>A TCP <strong>four-tuple</strong> is the source IP and port plus the destination IP and port. The <strong>sequence number (SEQ)</strong> gives the position of the first byte in a segment. The <strong>acknowledgment number (ACK)</strong> tells the sender which byte is expected next. TCP carries a byte stream, leaving applications to frame their own messages.</p>
+</div></div><div class="pair-row"><div class="cell" lang="zh-CN"><p><strong>三次握手（Three-Way Handshake）</strong> 用 SYN、SYN-ACK、ACK 让双方知道对方的初始序列号。例子中客户端 SYN 的 seq=100，服务器以 seq=400、ack=101 回应。客户端再发 seq=101、ack=401。因为 SYN 占一个序列号。随后客户端从 101 开始发送 20 字节，服务器期待下一个字节 121。纯 ACK 不消耗序列号。正常收尾中，两端分别用 FIN 和 ACK 关闭各自发送方向，FIN 也占一个序列号。</p>
+</div><div class="cell english" lang="en"><p>The <strong>three-way handshake</strong> uses SYN, SYN-ACK and ACK to exchange initial sequence numbers. In a toy example, the client sends SYN with seq=100. The server replies with seq=400 and ack=101. The client replies with seq=101 and ack=401. A SYN occupies one sequence position. If the client then sends 20 bytes starting at 101, the server expects 121 next. A pure ACK consumes no sequence position. Each side normally closes its sending direction with FIN and ACK. A FIN also occupies a position.</p>
+</div></div><div class="pair-row"><div class="cell" lang="zh-CN"><p><strong>连接重置（Reset, RST）</strong> 是 TCP 的控制信号。若未经认证的传输控制信息被错误接受，应用可能掉线，即使 TLS 保护数据内容。查看端口时，「有进程在监听」与「可以由外部访问」也不同，中间还有防火墙和路由。防守方会检查服务暴露情况与真实策略是否一致。</p>
+</div><div class="cell english" lang="en"><p>A <strong>reset (RST)</strong> is a TCP control signal. Incorrect acceptance of unauthenticated transport control data can interrupt an application even if TLS protects its content. A listening port and an externally reachable service can differ because of routing and filtering. Defenders compare actual exposure with their policy.</p>
+</div></div><p class="source">原讲义 / Slides · <span class="source-ref" title="lec8_transport.pdf">第 2–16 页</span></p></section><section class="lesson-section" id="handshake"><header class="section-head"><h2>TLS 1.2 握手逐步读</h2><p class="en-heading" lang="en">Reading a TLS 1.2 handshake</p></header><div class="pair-row"><div class="cell" lang="zh-CN"><p><strong>握手层（Handshake Layer）</strong> 负责协商参数、验证身份和建立密钥。<strong>记录层（Record Layer）</strong> 将握手和应用数据装进 TLS 记录。这里按讲义中 TLS 1.2 的 RSA 密钥交换示例解释，使用临时 DH 等套件时部分消息和认证动作会不同。</p>
+</div><div class="cell english" lang="en"><p>The <strong>handshake layer</strong> negotiates parameters, authenticates identity and establishes keys. The <strong>record layer</strong> packages handshake and application data. This walkthrough follows the TLS 1.2 RSA key-exchange example used in the slides. Suites using ephemeral DH or other mechanisms can have different messages and checks.</p>
+</div></div><div class="pair-row"><div class="cell" lang="zh-CN"><div class="table-wrap ordinal"><table>
+<thead>
+<tr>
+<th>顺序</th>
+<th>消息</th>
+<th>它解决什么问题</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>1</td>
+<td><strong>ClientHello</strong></td>
+<td>客户端提供随机数、可接受的版本和密码套件。</td>
+</tr>
+<tr>
+<td>2</td>
+<td><strong>ServerHello + Certificate</strong></td>
+<td>服务器选择套件，提供随机数及证书链。客户端验链并核对主机名。</td>
+</tr>
+<tr>
+<td>3</td>
+<td><strong>ClientKeyExchange</strong></td>
+<td>本例用服务器公钥保护预主密钥。两端从预主密钥与 Hello 随机数导出主密钥，再导出各方向的流量密钥。</td>
+</tr>
+<tr>
+<td>4</td>
+<td><strong>ChangeCipherSpec</strong></td>
+<td>通知对端在本方向启用协商出的记录保护。</td>
+</tr>
+<tr>
+<td>5</td>
+<td><strong>Finished</strong></td>
+<td>用协商秘密与此前的握手记录计算校验，双方确认参数和握手内容一致。</td>
+</tr>
+</tbody></table></div>
+</div><div class="cell english" lang="en"><div class="table-wrap ordinal"><table>
+<thead>
+<tr>
+<th>Step</th>
+<th>Message</th>
+<th>What it does</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>1</td>
+<td><strong>ClientHello</strong></td>
+<td>Sends a client random value, supported versions and cipher suites.</td>
+</tr>
+<tr>
+<td>2</td>
+<td><strong>ServerHello + Certificate</strong></td>
+<td>Selects a suite, supplies a random value and sends a certificate chain. The client validates the chain and hostname.</td>
+</tr>
+<tr>
+<td>3</td>
+<td><strong>ClientKeyExchange</strong></td>
+<td>In this example the server public key protects a premaster secret. Both parties derive a master secret and direction-specific keys using the agreed inputs.</td>
+</tr>
+<tr>
+<td>4</td>
+<td><strong>ChangeCipherSpec</strong></td>
+<td>Signals the move to the negotiated record protection in that direction.</td>
+</tr>
+<tr>
+<td>5</td>
+<td><strong>Finished</strong></td>
+<td>Checks the handshake using the negotiated secret and earlier handshake messages.</td>
+</tr>
+</tbody></table></div>
+</div></div><div class="pair-row"><div class="cell" lang="zh-CN"><p><strong>密码套件（Cipher Suite）</strong> 决定这条连接用到哪些密码机制。客户端写密钥匹配服务器对应的读密钥，服务器写密钥匹配客户端的读密钥，两个方向各自产生保护。仅验证证书链还没有检查完整的握手。<strong>握手记录（Handshake Transcript）</strong> 参与 Finished 的验证，让消息的前后关联得到确认。</p>
+</div><div class="cell english" lang="en"><p>A <strong>cipher suite</strong> selects the cryptographic mechanisms for the connection. The client&#39;s write key matches the server&#39;s corresponding read key, and vice versa. The directions have separate protection state. Verifying the certificate chain leaves the rest of the handshake to check. The <strong>handshake transcript</strong> contributes to Finished and binds the messages together.</p>
+</div></div><p class="source">原讲义 / Slides · <span class="source-ref" title="lec8_transport.pdf">第 17–36 页</span></p></section><section class="lesson-section" id="record"><header class="section-head"><h2>记录、会话与恢复</h2><p class="en-heading" lang="en">Records, sessions and resumption</p></header><div class="pair-row"><div class="cell" lang="zh-CN"><p>记录头提供内容类型、版本和长度。应用数据可以分成多条记录。在旧式 TLS 1.2 CBC 示例里，对记录内容和隐式序号等计算 MAC，再按套件加密。<strong>AEAD</strong> 套件将加密与认证交给同一模式。接收者只在得到有效记录后使用数据。记录顺序参与认证，一条记录是否可接受还取决于它所处的位置。</p>
+</div><div class="cell english" lang="en"><p>The record header gives content type, version and length. Applications can use several records. In the older TLS 1.2 CBC example, a MAC covers record data and fields such as the implicit sequence number before the suite applies encryption. An <strong>AEAD</strong> suite combines encryption and authentication. The receiver uses successfully verified data. The authentication state also ties a record to its position.</p>
+</div></div><div class="pair-row"><div class="cell" lang="zh-CN"><div class="table-wrap"><table>
+<thead>
+<tr>
+<th>对象</th>
+<th>保存了什么</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>会话（Session）</strong></td>
+<td>一次协商得到的可复用状态，例如套件、主密钥和可用会话标识。</td>
+</tr>
+<tr>
+<td><strong>连接（Connection）</strong></td>
+<td>本次通信的随机值、双向读写密钥和记录序号。</td>
+</tr>
+</tbody></table></div>
+</div><div class="cell english" lang="en"><div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Object</th>
+<th>What it holds</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>Session</strong></td>
+<td>Reusable negotiated information, such as the suite, master secret and available session identifier.</td>
+</tr>
+<tr>
+<td><strong>Connection</strong></td>
+<td>Random values, direction-specific read and write keys, and record numbers for this exchange.</td>
+</tr>
+</tbody></table></div>
+</div></div><div class="pair-row"><div class="cell" lang="zh-CN"><p><strong>会话恢复（Session Resumption）</strong> 例子中，服务器找到客户端请求的旧会话，从缓存的主密钥和新的随机数导出本次连接的密钥。因此可省去部分握手，又不需要沿用上一次连接的流量序号。关闭时可以通过 <strong>Alert</strong> 消息有序结束保护。</p>
+</div><div class="cell english" lang="en"><p>In the <strong>session resumption</strong> example, the server finds the previous session and combines its cached master secret with fresh randoms to derive connection keys. This saves part of the handshake while using fresh connection state. An <strong>Alert</strong> can signal an orderly closing of the protected channel.</p>
+</div></div><p class="source">原讲义 / Slides · <span class="source-ref" title="lec8_transport.pdf">第 37–49 页</span></p></section><section class="lesson-section" id="vpn"><header class="section-head"><h2>VPN 如何携带一个完整 IP 包</h2><p class="en-heading" lang="en">How a VPN carries a full IP packet</p></header><div class="pair-row"><div class="cell" lang="zh-CN"><p>VPN 首先建立经认证的通道，再用路由选择哪些包进入通道。<strong>IPsec 隧道</strong> 在 IP 层封装整个原包。讲义的 <strong>TLS VPN</strong> 示例让用户态程序把完整 IP 包作为 TLS 连接中的数据来传。</p>
+</div><div class="cell english" lang="en"><p>A VPN first establishes an authenticated channel, then routes selected packets through it. An <strong>IPsec tunnel</strong> encapsulates the original packet at the IP layer. In the <strong>TLS VPN</strong> example, a user-space program transports entire IP packets as data over TLS.</p>
+</div></div><div class="pair-row"><div class="cell" lang="zh-CN"><blockquote>
+<p>本机应用 → 内核路由 → TUN → VPN 程序 → TLS 通道 → 对端 VPN 程序 → 对端 TUN/路由</p>
+</blockquote>
+</div><div class="cell english" lang="en"><blockquote>
+<p>Application → kernel routing → TUN → VPN program → TLS channel → peer VPN program → peer TUN/routing</p>
+</blockquote>
+</div></div><div class="pair-row"><div class="cell" lang="zh-CN"><p><strong>TUN</strong> 交付三层 IP 包。<strong>TAP</strong> 交付二层帧。普通 socket 通常把应用数据交给程序，虚拟接口可让 VPN 程序处理包或帧本身。出站先读虚拟接口，再写隧道。入站方向反过来。只有由路由选中、并交给 VPN 的流量获得这段保护。</p>
+</div><div class="cell english" lang="en"><p>A <strong>TUN</strong> interface carries layer-three IP packets. <strong>TAP</strong> carries layer-two frames. A normal socket often gives the program application bytes, while a virtual interface can expose complete packets or frames. Read the virtual interface and write into the tunnel on output, and do the reverse on input. The channel protects traffic selected by the routing policy.</p>
+</div></div><p class="source">原讲义 / Slides · <span class="source-ref" title="lec8_transport.pdf">第 50–64 页</span></p></section><section class="quiz" id="self-check"><header class="section-head"><h2>合上讲义自测</h2><p class="en-heading" lang="en">Check your understanding</p></header><div class="pair-row"><div class="cell" lang="zh-CN"><ol>
+<li>SYN 的序列号是 100，为什么回应的确认号是 101？</li>
+<li>TLS Finished 检查了什么？为什么有了证书还需要它？</li>
+<li>VPN 用户态程序要处理 IP 包，选 TUN 还是 TAP？</li>
+</ol>
+</div><div class="cell english" lang="en"><ol>
+<li>Why does a SYN with sequence 100 get acknowledgment 101?</li>
+<li>What does TLS Finished check, beyond having a certificate?</li>
+<li>Which interface carries IP packets for a user-space VPN, TUN or TAP?</li>
+</ol>
+</div></div><details><summary>查看答案 / Show answers</summary><div class="pair-row"><div class="cell" lang="zh-CN"><ol>
+<li>SYN 占用一个序列号，ACK 指向下一个期待的序列位置。</li>
+<li>它将此前握手内容与协商秘密联系起来，确认两边看到的协商一致。证书只是握手中的一项身份材料。</li>
+<li>TUN 对应 IP 包。TAP 对应链路帧。</li>
+</ol>
+</div><div class="cell english" lang="en"><ol>
+<li>SYN occupies one sequence position, and ACK names the next expected position.</li>
+<li>Finished binds the earlier handshake to the negotiated secret and confirms consistent negotiation. The certificate is one identity input to the handshake.</li>
+<li>TUN carries IP packets. TAP carries link-layer frames.</li>
+</ol>
+</div></div></details></section><nav class="bottom" aria-label="讲次切换"><a href="l07.html">上一讲 · L07</a><a href="index.html">返回目录</a><a href="l09.html">下一讲 · L09</a></nav></main></body></html>

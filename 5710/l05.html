@@ -1,0 +1,163 @@
+<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>L05 进程内存与缓冲区溢出 · IEMS5710A</title><link rel="stylesheet" href="reader.css"></head><body><header class="top"><nav aria-label="课程导航"><a href="index.html">5710 双语讲义</a><a href="exam.html">高频考点</a><span class="current">L05 进程内存与缓冲区溢出</span></nav></header><main><header class="hero"><p class="eyebrow">IEMS5710A · L05</p><h1>进程内存与缓冲区溢出</h1><p class="en-heading" lang="en">Process memory and buffer overflows</p><div class="intro"><div class="pair-row"><div class="cell" lang="zh-CN"><p>把进程内存想象成有权限的地址空间。数组只占其中一段。课堂问题从「这一字节会写到哪里」开始，再问相邻数据是什么，以及操作系统与编译器能在哪一环检测或限制后果。</p>
+</div><div class="cell english" lang="en"><p>Think of process memory as an address space with permissions. An array occupies only one part. Start by asking where a byte is written, then identify the neighboring data and when the compiler or operating system can detect or limit damage.</p>
+</div></div></div><p class="meta-text">本学期配套练习 / Current homework · <span class="source-ref" title="IEMS5710HW2.pdf">HW2 Q4–5</span></p></header><details class="jump" open><summary>本讲目录 / In this lecture</summary><nav aria-label="本讲目录"><ul><li><a href="#memory">从可执行文件到进程地址空间</a></li><li><a href="#frame">读懂一张栈帧图</a></li><li><a href="#bounds">逐字节判断是否越界</a></li><li><a href="#guard">三种防御各挡在哪一步</a></li><li><a href="#self-check">自测</a></li></ul></nav></details><div class="language-header"><span>中文讲解</span><span lang="en">English explanation</span></div><section class="lesson-section" id="memory"><header class="section-head"><h2>从可执行文件到进程地址空间</h2><p class="en-heading" lang="en">From an executable to process memory</p></header><div class="pair-row"><div class="cell" lang="zh-CN"><p><strong>程序（Program）</strong> 是存储的指令和数据。<strong>进程（Process）</strong> 是运行中的实例，有自己的 <strong>虚拟地址空间（Virtual Address Space）</strong>。两个进程可使用同一个虚拟地址而映射到不同的内存。操作系统按 <strong>页（Page）</strong> 映射和控制读、写、执行权限。某些硬件访问还要求 <strong>页对齐（Page Alignment）</strong>。</p>
+</div><div class="cell english" lang="en"><p>A <strong>program</strong> is stored instructions and data. A <strong>process</strong> is a running instance with its own <strong>virtual address space</strong>. Identical virtual addresses in two processes can map to different memory. The operating system maps <strong>pages</strong> and assigns read, write and execute permissions. Some hardware access also needs <strong>page alignment</strong>.</p>
+</div></div><div class="pair-row"><div class="cell" lang="zh-CN"><div class="table-wrap"><table>
+<thead>
+<tr>
+<th>区域</th>
+<th>典型内容</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>代码段（Text Segment）</strong></td>
+<td>执行的机器指令，通常被映射成可读和可执行。</td>
+</tr>
+<tr>
+<td><strong>数据段（Data Segment）</strong></td>
+<td>需要保留初值的全局和静态数据。</td>
+</tr>
+<tr>
+<td><strong>BSS</strong></td>
+<td>程序启动时清零的静态存储，程序文件主要记录所需空间。</td>
+</tr>
+<tr>
+<td><strong>堆（Heap）</strong></td>
+<td>动态分配的对象。分配器也可能通过额外映射取得内存。</td>
+</tr>
+<tr>
+<td><strong>栈（Stack）</strong></td>
+<td>部分局部对象和函数调用状态。</td>
+</tr>
+</tbody></table></div>
+</div><div class="cell english" lang="en"><div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Region</th>
+<th>Typical contents</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>Text segment</strong></td>
+<td>Machine instructions, normally mapped readable and executable.</td>
+</tr>
+<tr>
+<td><strong>Data segment</strong></td>
+<td>Global and static data whose initial values are stored.</td>
+</tr>
+<tr>
+<td><strong>BSS</strong></td>
+<td>Static storage cleared at startup, with its size recorded in the program file.</td>
+</tr>
+<tr>
+<td><strong>Heap</strong></td>
+<td>Dynamically allocated objects. Allocators can also obtain separate mappings.</td>
+</tr>
+<tr>
+<td><strong>Stack</strong></td>
+<td>Some local objects and function call state.</td>
+</tr>
+</tbody></table></div>
+</div></div><div class="pair-row"><div class="cell" lang="zh-CN"><p><strong>缓冲区（Buffer）</strong> 是一块有容量的存储。程序传递普通的 C 指针时，指针值说明地址，容量往往要另外提供。<strong>栈耗尽（Stack Exhaustion）</strong> 是深递归或局部对象过大把栈空间用完。<strong>缓冲区溢出（Buffer Overflow）</strong> 则是越过某一对象的边界，两者可以出现在不同情形。</p>
+</div><div class="cell english" lang="en"><p>A <strong>buffer</strong> is storage with a capacity. A normal C pointer provides an address, so capacity often needs to be passed separately. <strong>Stack exhaustion</strong> happens when recursion or large local allocations consume the stack. A <strong>buffer overflow</strong> crosses an individual object&#39;s bounds.</p>
+</div></div><p class="source">原讲义 / Slides · <span class="source-ref" title="lec5_buffer.pdf">第 2–22 页</span></p></section><section class="lesson-section" id="frame"><header class="section-head"><h2>读懂一张栈帧图</h2><p class="en-heading" lang="en">Reading a stack-frame diagram</p></header><div class="pair-row"><div class="cell" lang="zh-CN"><p><strong>栈帧（Stack Frame）</strong> 保存一次调用用到的信息。讲义采用 32 位 x86 的示意模型。常见的逻辑顺序如下。</p>
+</div><div class="cell english" lang="en"><p>A <strong>stack frame</strong> holds information used by one function invocation. The slides use a 32-bit x86 teaching model. A typical logical sequence is as follows.</p>
+</div></div><div class="pair-row"><div class="cell" lang="zh-CN"><ol>
+<li><strong>调用者（Caller）</strong> 按调用约定准备参数。CALL 记录下一条指令的地址，再转到被调用函数。</li>
+<li><strong>被调用函数（Callee）</strong> 可以保存旧帧指针并为局部数据留空间。ESP 即 <strong>栈指针（Stack Pointer）</strong>，随压栈和弹栈变化。EBP 在课件模型里作 <strong>帧指针（Frame Pointer）</strong>。</li>
+<li>函数结束时恢复保存的调用状态。RET 取得保存的 <strong>返回地址（Return Address）</strong>。它告诉处理器回到调用之后的指令。</li>
+</ol>
+</div><div class="cell english" lang="en"><ol>
+<li>The <strong>caller</strong> prepares arguments according to the convention. CALL records the address of the next instruction and transfers control to the function.</li>
+<li>The <strong>callee</strong> can save the old frame pointer and reserve local storage. ESP is the <strong>stack pointer</strong> and changes with pushes and pops. EBP is the <strong>frame pointer</strong> in the slide model.</li>
+<li>Before finishing, the function restores saved state. RET obtains the saved <strong>return address</strong>, which directs execution to the instruction after the call.</li>
+</ol>
+</div></div><div class="pair-row"><div class="cell" lang="zh-CN"><p><strong>调用约定（Calling Convention）</strong> 规定参数放在哪、哪些寄存器要保存、栈如何清理。在讲义的 32 位模型中，cdecl 由调用者清理栈参数，stdcall 由被调用者清理。做题按题给的图、栈增长方向、字节数和对齐写。优化或换架构时，参数可能在寄存器，局部变量也可能被优化掉，图不能硬套。</p>
+</div><div class="cell english" lang="en"><p>A <strong>calling convention</strong> specifies where arguments go, which registers are saved and how the stack is cleaned up. In the slide model, cdecl leaves stack argument cleanup to the caller, while stdcall leaves it to the callee. Use the diagram, growth direction, byte counts and alignment given in a question. Optimization or a different architecture can pass arguments in registers or remove some local variables.</p>
+</div></div><p class="source">原讲义 / Slides · <span class="source-ref" title="lec5_buffer.pdf">第 23–54 页</span></p></section><section class="lesson-section" id="bounds"><header class="section-head"><h2>逐字节判断是否越界</h2><p class="en-heading" lang="en">Checking bounds byte by byte</p></header><div class="pair-row"><div class="cell" lang="zh-CN"><p><strong>例子</strong>。有一个容量为 16 字节的字符数组，合法下标是 0 到 15。复制 n 字节的 C 字符串还要再写一个 <strong>NUL 终止符（NUL Terminator）</strong>，所以要写下标 0 到 n。若 n=15，终止符在最后一格，刚好放下。若 n=16，正文虽能填满数组，终止符却会落在 16，已经越界。</p>
+</div><div class="cell english" lang="en"><p><strong>Example.</strong> A character array has capacity 16 bytes and valid indices 0 through 15. Copying a C string of n bytes also writes a <strong>NUL terminator</strong>, so the writes cover indices 0 through n. With n=15, the terminator occupies the final slot and fits. With n=16, the text fills the array and the terminator at index 16 is out of bounds.</p>
+</div></div><div class="pair-row"><div class="cell" lang="zh-CN"><p>按这个顺序做题。先明确数组起点和容量，再求实际写入字节数，然后比较末字节与合法末地址。若题目使用小端序，<strong>小端（Little Endian）</strong> 表示低有效字节放在较低地址。地址升序和数字打印顺序可能不同。安全修复应拒绝放不下的数据，或按明确业务语义处理截断，并保留终止空间。</p>
+</div><div class="cell english" lang="en"><p>First determine the initial address and capacity. Count the bytes actually written, then compare the final write with the last valid address. A <strong>little-endian</strong> number stores the least significant byte at the lowest address. Address order may look different from the order in a printed number. A sound fix rejects data that cannot fit or handles truncation explicitly, while reserving room for the terminator.</p>
+</div></div><div class="pair-row"><div class="cell" lang="zh-CN"><p>一次越界写可能损坏相邻的普通数据。若受影响的是保存的返回地址或其他 <strong>控制数据（Control Data）</strong>，控制流也可能受损。即使写入的虚拟页可写、程序没有立刻崩溃，对象边界仍然已被违反。这里关注缺失的检查和影响范围。</p>
+</div><div class="cell english" lang="en"><p>An out-of-bounds write can corrupt neighboring data. If it reaches a saved return address or other <strong>control data</strong>, it can affect control flow. A write can violate object bounds even when the virtual page is writable and the process does not crash immediately. The analysis focuses on the missing check and its impact.</p>
+</div></div><p class="source">原讲义 / Slides · <span class="source-ref" title="lec5_buffer.pdf">第 2–6 页</span> · <span class="source-ref" title="lec5_buffer.pdf">第 51–82 页</span></p></section><section class="lesson-section" id="guard"><header class="section-head"><h2>三种防御各挡在哪一步</h2><p class="en-heading" lang="en">What each mitigation does</p></header><div class="pair-row"><div class="cell" lang="zh-CN"><div class="table-wrap"><table>
+<thead>
+<tr>
+<th>措施</th>
+<th>保护时机与作用</th>
+<th>仍要检查什么</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>边界检查（Bounds Checking）</strong></td>
+<td>写入前检查长度、容量和终止符。</td>
+<td>截断或报错行为要符合调用方语义。</td>
+</tr>
+<tr>
+<td><strong>栈金丝雀（Stack Canary / StackGuard）</strong></td>
+<td>返回前核对保护值，发现被修改时停止。</td>
+<td>与保护值无关的越界仍可能发生。</td>
+</tr>
+<tr>
+<td><strong>地址空间布局随机化（ASLR）</strong></td>
+<td>改变映射位置，使地址难预测。</td>
+<td>仍须及时修复有界对象写入缺陷。</td>
+</tr>
+<tr>
+<td><strong>可写与可执行互斥（W^X）</strong></td>
+<td>页权限限制数据页被当成指令执行。</td>
+<td>写入可写内存仍可造成数据破坏。</td>
+</tr>
+</tbody></table></div>
+</div><div class="cell english" lang="en"><div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Measure</th>
+<th>When and how it helps</th>
+<th>What still needs checking</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>Bounds checking</strong></td>
+<td>Checks length, capacity and termination before writing.</td>
+<td>Rejection or truncation must suit the caller.</td>
+</tr>
+<tr>
+<td><strong>Stack canary / StackGuard</strong></td>
+<td>Checks a guard value before returning and terminates on corruption.</td>
+<td>Writes that do not touch the guard may still occur.</td>
+</tr>
+<tr>
+<td><strong>Address-space layout randomization (ASLR)</strong></td>
+<td>Changes mapping locations and makes addresses harder to predict.</td>
+<td>The incorrect bounded-object write still requires a fix.</td>
+</tr>
+<tr>
+<td><strong>Write XOR Execute (W^X)</strong></td>
+<td>Page permissions prevent writable data pages from being executed as instructions.</td>
+<td>Writes to writable memory can still corrupt data.</td>
+</tr>
+</tbody></table></div>
+</div></div><div class="pair-row"><div class="cell" lang="zh-CN"><p>HW2 Q5 的答题方式适合每项措施。先说它检查什么或改变什么，再说它影响哪一步，最后说明源码里的错误如何修。多个措施可以叠加，真正修复发生在对长度和目标容量的校验上。</p>
+</div><div class="cell english" lang="en"><p>The structure of HW2 Q5 works for each measure. State what it checks or changes, identify the stage it affects, and explain how to fix the source-level defect. Combining protections helps, while the source fix comes from checking length against capacity.</p>
+</div></div><p class="source">原讲义 / Slides · <span class="source-ref" title="lec5_buffer.pdf">第 81–85 页</span></p></section><section class="quiz" id="self-check"><header class="section-head"><h2>合上讲义自测</h2><p class="en-heading" lang="en">Check your understanding</p></header><div class="pair-row"><div class="cell" lang="zh-CN"><ol>
+<li>容量 8 字节的字符数组能容纳多少字节的非 NUL 内容？</li>
+<li>为什么越界写不一定报段错误？</li>
+<li>Canary、ASLR、W^X 分别检查或限制什么？</li>
+</ol>
+</div><div class="cell english" lang="en"><ol>
+<li>How many non-NUL bytes fit in an eight-byte C string buffer?</li>
+<li>Why can an out-of-bounds write fail to cause a segmentation fault?</li>
+<li>What does a canary, ASLR, or W^X check or restrict?</li>
+</ol>
+</div></div><details><summary>查看答案 / Show answers</summary><div class="pair-row"><div class="cell" lang="zh-CN"><ol>
+<li>最多 7 字节，再加一个 NUL。</li>
+<li>对象边界以外的地址可能仍在可写页内。页权限检查与数组边界检查粒度不同。</li>
+<li>Canary 返回前查保护值。ASLR 提高地址预测难度。W^X 限制可写页的执行权限。</li>
+</ol>
+</div><div class="cell english" lang="en"><ol>
+<li>At most seven bytes and one NUL.</li>
+<li>Beyond the object can still be inside a writable page. Page permissions and array bounds operate at different granularities.</li>
+<li>A canary checks a guard before return. ASLR makes addresses less predictable. W^X constrains execution from writable pages.</li>
+</ol>
+</div></div></details></section><nav class="bottom" aria-label="讲次切换"><a href="l04.html">上一讲 · L04</a><a href="index.html">返回目录</a><a href="l06.html">下一讲 · L06</a></nav></main></body></html>

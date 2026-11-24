@@ -1,0 +1,157 @@
+<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>L10 Web 安全 · IEMS5710A</title><link rel="stylesheet" href="reader.css"></head><body><header class="top"><nav aria-label="课程导航"><a href="index.html">5710 双语讲义</a><a href="exam.html">高频考点</a><span class="current">L10 Web 安全</span></nav></header><main><header class="hero"><p class="eyebrow">IEMS5710A · L10</p><h1>Web 安全</h1><p class="en-heading" lang="en">Web security</p><div class="intro"><div class="pair-row"><div class="cell" lang="zh-CN"><p>浏览器会执行网页里的代码，也会自动携带一些登录凭据。Web 场景题先找出哪条边界失守。是用户没同意就修改了状态，还是浏览器把数据当脚本，或者数据库把数据当 SQL？</p>
+</div><div class="cell english" lang="en"><p>A browser runs page code and can attach session credentials automatically. In a web security scenario, identify the broken boundary. Did the application perform an action without user intent, did the browser treat data as code, or did the database treat data as SQL?</p>
+</div></div></div></header><details class="jump" open><summary>本讲目录 / In this lecture</summary><nav aria-label="本讲目录"><ul><li><a href="#sop">URL、HTTP 与同源策略</a></li><li><a href="#cookie">Cookie 怎样维持会话</a></li><li><a href="#csrf">CSRF 与点击劫持</a></li><li><a href="#xss">反射型与存储型 XSS</a></li><li><a href="#sql">SQL 参数化为什么有效</a></li><li><a href="#self-check">自测</a></li></ul></nav></details><div class="language-header"><span>中文讲解</span><span lang="en">English explanation</span></div><section class="lesson-section" id="sop"><header class="section-head"><h2>URL、HTTP 与同源策略</h2><p class="en-heading" lang="en">URLs, HTTP and the same-origin policy</p></header><div class="pair-row"><div class="cell" lang="zh-CN"><p>读 URL 例子 <code>https://lab.example:8443/items?id=7#notes</code>。协议是 https，主机是 lab.example，端口是 8443，路径是 /items，查询参数 id 是 7，片段 notes 一般由浏览器处理。HTTP 请求有方法、目标和头，某些请求还带正文。服务器用状态码、头和正文返回响应。</p>
+</div><div class="cell english" lang="en"><p>Read <code>https://lab.example:8443/items?id=7#notes</code> as scheme https, host lab.example, port 8443, path /items, query value id=7 and the fragment notes, which is generally handled by the browser. An HTTP request has a method, target and headers, and may contain a body. The response carries a status, headers and often a body.</p>
+</div></div><div class="pair-row"><div class="cell" lang="zh-CN"><p><strong>文档对象模型（Document Object Model, DOM）</strong> 把 HTML 表示成可读写的树。<strong>同源策略（Same-Origin Policy, SOP）</strong> 检查协议、主机和端口是否都相同。上例改成端口 443 就成了不同源。两个路径不同但协议、主机、端口相同，仍然同源。这个规则会限制跨源脚本读取和操作。某些跨源请求仍可发出，服务器要验证请求本身。</p>
+</div><div class="cell english" lang="en"><p>The <strong>Document Object Model (DOM)</strong> represents HTML as a readable and writable tree. The <strong>same-origin policy (SOP)</strong> checks whether scheme, host and port all match. Changing the example to port 443 changes the origin. Two paths can differ and still share an origin. SOP restricts cross-origin script reads and interactions. Some cross-origin requests can still be sent, so the server must validate actions.</p>
+</div></div><p class="source">原讲义 / Slides · <span class="source-ref" title="lec10_web.pdf">第 3–8 页</span></p></section><section class="lesson-section" id="cookie"><header class="section-head"><h2>Cookie 怎样维持会话</h2><p class="en-heading" lang="en">How cookies maintain sessions</p></header><div class="pair-row"><div class="cell" lang="zh-CN"><p>HTTP 单次请求不会自然记住你登录过。服务端创建 <strong>会话（Session）</strong>，把不能轻易猜出的 <strong>会话标识（Session ID）</strong> 通过 Set-Cookie 交给浏览器。浏览器在符合规则的请求中附上 Cookie，服务器据此读取会话状态。Cookie 只携带应用定义的值，权限仍由服务端决定。</p>
+</div><div class="cell english" lang="en"><p>An isolated HTTP request does not automatically remember a previous sign-in. The server creates a <strong>session</strong> and sends a hard-to-guess <strong>session ID</strong> through Set-Cookie. The browser includes the Cookie for requests that meet its rules. The server uses the ID to look up state and decides authorization.</p>
+</div></div><div class="pair-row"><div class="cell" lang="zh-CN"><div class="table-wrap"><table>
+<thead>
+<tr>
+<th>属性</th>
+<th>阅读时要理解的作用</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>Domain / Path</strong></td>
+<td>限制哪些主机或路径的请求携带 Cookie。父域配置过宽会扩大子域影响。Path 主要决定发送范围。</td>
+</tr>
+<tr>
+<td><strong>Secure</strong></td>
+<td>约束 Cookie 只通过安全连接发送。</td>
+</tr>
+<tr>
+<td><strong>HttpOnly</strong></td>
+<td>阻止页面脚本直接读取该 Cookie。符合规则的请求仍可携带它。</td>
+</tr>
+<tr>
+<td><strong>SameSite</strong></td>
+<td>约束跨站请求带 Cookie 的方式。Strict 最严格，Lax 允许一些安全的顶级导航，None 允许按其他规则用于跨站请求。</td>
+</tr>
+<tr>
+<td><strong>Expires / Max-Age</strong></td>
+<td>设定保存期限。会话是否继续有效也由服务器决定。</td>
+</tr>
+</tbody></table></div>
+</div><div class="cell english" lang="en"><div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Attribute</th>
+<th>Purpose</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>Domain / Path</strong></td>
+<td>Scope the hosts or paths that receive the cookie. A broad parent domain can increase subdomain influence. Path mainly limits sending.</td>
+</tr>
+<tr>
+<td><strong>Secure</strong></td>
+<td>Send it over a secure connection.</td>
+</tr>
+<tr>
+<td><strong>HttpOnly</strong></td>
+<td>Forbid direct reads by page scripts. Eligible requests can still carry it.</td>
+</tr>
+<tr>
+<td><strong>SameSite</strong></td>
+<td>Controls cross-site inclusion. Strict is the most restrictive. Lax permits some safe top-level navigation. None allows inclusion subject to other rules.</td>
+</tr>
+<tr>
+<td><strong>Expires / Max-Age</strong></td>
+<td>Control retention. The server still decides whether a session is valid.</td>
+</tr>
+</tbody></table></div>
+</div></div><div class="pair-row"><div class="cell" lang="zh-CN"><p><strong>同站（Same-Site）</strong> 与 DOM 的同源不是同一个判断。典型浏览器按方案与可注册域比较站点。子域不同可以是同站而不同源。<strong>会话固定（Session Fixation）</strong> 指登录前的标识被第三方掌握，登录后应用又沿用它。登录和提权后更新会话标识，退出时使服务端会话失效。</p>
+</div><div class="cell english" lang="en"><p><strong>Same-site</strong> and DOM same-origin are distinct checks. Typical browsers compare scheme and registrable domain for site calculations. Different subdomains can be same-site while remaining cross-origin. <strong>Session fixation</strong> occurs when a third party knows the pre-login ID and the application keeps it after authentication. Rotate the ID on sign-in or privilege changes and invalidate the server session on logout.</p>
+</div></div><p class="source">原讲义 / Slides · <span class="source-ref" title="lec10_web.pdf">第 9–21 页</span></p></section><section class="lesson-section" id="csrf"><header class="section-head"><h2>CSRF 与点击劫持</h2><p class="en-heading" lang="en">CSRF and clickjacking</p></header><div class="pair-row"><div class="cell" lang="zh-CN"><p><strong>跨站请求伪造（Cross-Site Request Forgery, CSRF）</strong> 常出现在这样的组合。用户有有效登录状态，浏览器能向网站发出状态修改请求并带凭据，而服务端只检查「登录了吗」。即使攻击者读不到响应，修改也可能发生。讲义用改账号资料来解释。服务端需要核验 <strong>这一项操作是否经过授权</strong>。</p>
+</div><div class="cell english" lang="en"><p><strong>Cross-site request forgery (CSRF)</strong> often combines a valid signed-in session, a browser that can send a state-changing request with credentials, and a server that checks only whether someone is signed in. Changes can occur even if the adversary cannot read the response. The slides illustrate this with account details. The server needs evidence that <strong>this particular action is authorized</strong>.</p>
+</div></div><div class="pair-row"><div class="cell" lang="zh-CN"><ul>
+<li><strong>防 CSRF 令牌（Anti-CSRF Token）</strong> 应难以猜到，并与合适的会话或请求上下文关联。正常界面把令牌作为额外字段送回，服务端独立验证。仅检查 Cookie 仍只说明浏览器带了会话。</li>
+<li><strong>Origin / Referer</strong> 检查与合适的 <strong>SameSite</strong> 设置可以共同限制不同路径。把 GET 改成 POST 只改变方法，服务端仍要验证令牌或来源。</li>
+<li><strong>点击劫持（Clickjacking）</strong> 让用户以为点击了一个界面，实际操作另一个被嵌入的界面。<strong>CSP frame-ancestors</strong> 限制哪些页面有权嵌入敏感界面，处理的是显示与交互边界。</li>
+</ul>
+</div><div class="cell english" lang="en"><ul>
+<li>An <strong>anti-CSRF token</strong> should be hard to guess and bound to an appropriate session or request context. The normal interface returns it as an additional value that the server checks independently. A cookie check by itself indicates session credentials were sent.</li>
+<li><strong>Origin or Referer</strong> validation and appropriate <strong>SameSite</strong> settings can restrict different paths. A switch from GET to POST changes the method, and a token or origin check is still needed.</li>
+<li><strong>Clickjacking</strong> misleads the user about which embedded interface receives a click. <strong>CSP frame-ancestors</strong> restricts who can embed a sensitive page, protecting the presentation and interaction boundary.</li>
+</ul>
+</div></div><div class="pair-row"><div class="cell" lang="zh-CN"><p><strong>答题顺序</strong>。先看浏览器会不会带这个 Cookie，再看服务器有没有检查操作来源，最后判断请求能否引起状态变化。</p>
+</div><div class="cell english" lang="en"><p><strong>Exam reasoning.</strong> Ask whether the browser sends the cookie, whether the server checks the action&#39;s origin, and whether the request can change state.</p>
+</div></div><p class="source">原讲义 / Slides · <span class="source-ref" title="lec10_web.pdf">第 22–37 页</span></p></section><section class="lesson-section" id="xss"><header class="section-head"><h2>反射型与存储型 XSS</h2><p class="en-heading" lang="en">Reflected and stored XSS</p></header><div class="pair-row"><div class="cell" lang="zh-CN"><p><strong>跨站脚本（Cross-Site Scripting, XSS）</strong> 是浏览器在受信站点的上下文中解释了本应作为数据的输入。<strong>反射型（Reflected）</strong> 把本次请求里的输入放进本次响应。<strong>存储型（Stored）</strong> 先把输入写进数据库或内容系统，以后每位打开相应页面的人都可能遇到。已有的站点权限可能让错误执行的脚本读取页面或代为发请求。</p>
+</div><div class="cell english" lang="en"><p><strong>Cross-site scripting (XSS)</strong> occurs when a browser interprets untrusted data as executable content in a trusted site&#39;s context. <strong>Reflected XSS</strong> puts input from the current request into its response. <strong>Stored XSS</strong> saves input to a database or content system, so it can affect later visitors. Code running in that origin can use the site&#39;s privileges to read page data or send requests.</p>
+</div></div><div class="pair-row"><div class="cell" lang="zh-CN"><p><strong>上下文相关输出编码（Context-Sensitive Output Encoding）</strong> 先看输出位置。HTML 正文、属性值、URL、脚本字面量各有不同规则。若页面只需显示一段文字，应使用文本接口或模板的安全默认输出。确实允许富文本时，使用有明确允许列表的 <strong>净化（Sanitization）</strong>。<strong>内容安全策略（Content Security Policy, CSP）</strong> 进一步约束允许执行的脚本。HttpOnly 有助于阻止脚本直接读取 Cookie，仍应修复可执行输入。</p>
+</div><div class="cell english" lang="en"><p><strong>Context-sensitive output encoding</strong> starts by identifying the output position. HTML text, attribute values, URLs and JavaScript literals have different rules. For ordinary text, use a text API or the template&#39;s safe default. Where rich text is necessary, use <strong>sanitization</strong> with an explicit allowlist. A <strong>content security policy (CSP)</strong> can further restrict script execution. HttpOnly helps block direct cookie reads, while the executable input still needs correction.</p>
+</div></div><p class="source">原讲义 / Slides · <span class="source-ref" title="lec10_web.pdf">第 38–49 页</span></p></section><section class="lesson-section" id="sql"><header class="section-head"><h2>SQL 参数化为什么有效</h2><p class="en-heading" lang="en">Why SQL parameterization works</p></header><div class="pair-row"><div class="cell" lang="zh-CN"><p><strong>SQL 注入（SQL Injection）</strong> 发生在服务器将不可信输入拼接到 SQL 串时。数据库解析的是整条字符串，无法仅凭来源知道每段是语法还是普通值。即使页面不展示直接的查询输出，错误差异和延迟也可能泄露信息。</p>
+</div><div class="cell english" lang="en"><p><strong>SQL injection</strong> occurs when a server builds a SQL string by concatenating untrusted values. The database parses the whole string and cannot tell which parts the application meant to be values. Even without a direct result in the page, error differences or timings can leak information.</p>
+</div></div><div class="pair-row"><div class="cell" lang="zh-CN"><p><strong>预处理语句（Prepared Statement）</strong> 把语句结构和输入值分开。先让数据库准备 <code>SELECT name FROM users WHERE id = ?</code>，再通过 <strong>参数绑定（Parameter Binding）</strong> 提供 id。数据库将 id 当一个值使用，查询语法事先固定。表名或排序字段属于结构，通常用服务端固定选项映射。用最小权限账号能缩小查询出错时的影响范围。</p>
+</div><div class="cell english" lang="en"><p>A <strong>prepared statement</strong> separates structure and values. First prepare <code>SELECT name FROM users WHERE id = ?</code>, then supply id through <strong>parameter binding</strong>. The database uses id as a value under an already established query structure. Table or sort-column names are structural and can be mapped from fixed server-side options. A least-privilege database role limits the impact of errors.</p>
+</div></div><div class="pair-row"><div class="cell" lang="zh-CN"><div class="table-wrap"><table>
+<thead>
+<tr>
+<th>风险</th>
+<th>失守的边界</th>
+<th>主要防护</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>CSRF</td>
+<td>从已认证会话到用户真实意图</td>
+<td>令牌、来源检查、SameSite。</td>
+</tr>
+<tr>
+<td>XSS</td>
+<td>从页面数据到可执行内容</td>
+<td>按上下文编码、富文本净化、CSP。</td>
+</tr>
+<tr>
+<td>SQL 注入</td>
+<td>从用户值到数据库语句结构</td>
+<td>预处理语句、参数绑定、最小权限。</td>
+</tr>
+</tbody></table></div>
+</div><div class="cell english" lang="en"><div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Problem</th>
+<th>Broken boundary</th>
+<th>Primary defenses</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>CSRF</td>
+<td>Authentic session versus real user intent</td>
+<td>Tokens, origin validation, SameSite.</td>
+</tr>
+<tr>
+<td>XSS</td>
+<td>Page data versus executable content</td>
+<td>Contextual encoding, rich-text sanitization, CSP.</td>
+</tr>
+<tr>
+<td>SQL injection</td>
+<td>Input value versus SQL statement structure</td>
+<td>Prepared statements, parameter binding, least privilege.</td>
+</tr>
+</tbody></table></div>
+</div></div><p class="source">原讲义 / Slides · <span class="source-ref" title="lec10_web.pdf">第 50–61 页</span></p></section><section class="quiz" id="self-check"><header class="section-head"><h2>合上讲义自测</h2><p class="en-heading" lang="en">Check your understanding</p></header><div class="pair-row"><div class="cell" lang="zh-CN"><ol>
+<li>两个地址只改变端口，对 DOM 来说还是同源吗？</li>
+<li>服务器把会话 Cookie 设为 HttpOnly。为什么仍应该校验改资料请求的 CSRF 令牌？</li>
+<li>为什么查询的参数可以绑定，而用户选择的表名通常用固定列表？</li>
+</ol>
+</div><div class="cell english" lang="en"><ol>
+<li>Are two otherwise equal addresses with different ports same-origin for the DOM?</li>
+<li>Why check a CSRF token on an account update even with an HttpOnly session cookie?</li>
+<li>Why bind query values but choose a table name from a fixed list?</li>
+</ol>
+</div></div><details><summary>查看答案 / Show answers</summary><div class="pair-row"><div class="cell" lang="zh-CN"><ol>
+<li>不同源。端口是同源检查的组成部分。</li>
+<li>HttpOnly 限制脚本读 Cookie，浏览器仍可能自动发送它。令牌验证的是请求意图所在的边界。</li>
+<li>参数占位符表示值。表名属于语句结构，要验证允许的选项。</li>
+</ol>
+</div><div class="cell english" lang="en"><ol>
+<li>They are cross-origin. Port is part of the origin.</li>
+<li>HttpOnly limits script reads while the browser may still send the cookie automatically. The token checks a separate action boundary.</li>
+<li>A parameter position is a value. A table name belongs to the structure and needs an allowlisted choice.</li>
+</ol>
+</div></div></details></section><nav class="bottom" aria-label="讲次切换"><a href="l09.html">上一讲 · L09</a><a href="index.html">返回目录</a><a href="l11.html">下一讲 · L11</a></nav></main></body></html>

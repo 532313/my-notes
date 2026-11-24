@@ -1,0 +1,95 @@
+<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>L09 DNS、拒绝服务与蠕虫 · IEMS5710A</title><link rel="stylesheet" href="reader.css"></head><body><header class="top"><nav aria-label="课程导航"><a href="index.html">5710 双语讲义</a><a href="exam.html">高频考点</a><span class="current">L09 DNS、拒绝服务与蠕虫</span></nav></header><main><header class="hero"><p class="eyebrow">IEMS5710A · L09</p><h1>DNS、拒绝服务与蠕虫</h1><p class="en-heading" lang="en">DNS, denial of service and worms</p><div class="intro"><div class="pair-row"><div class="cell" lang="zh-CN"><p>DNS 解决「去哪里找某个名字」，<strong>DNSSEC</strong> 解决「回答是谁保证的」。拒绝服务题的切入点不同，要找到有限资源在哪里，为什么正常用户拿不到它。</p>
+</div><div class="cell english" lang="en"><p>DNS answers where to find a name, and <strong>DNSSEC</strong> helps verify who vouched for the DNS data. Denial-of-service questions start with a different issue. Find the limited resource and explain why legitimate users cannot obtain it.</p>
+</div></div></div></header><details class="jump" open><summary>本讲目录 / In this lecture</summary><nav aria-label="本讲目录"><ul><li><a href="#lookup">域、区和一次域名解析</a></li><li><a href="#dnssec">DNSSEC 和 HTTPS 验证谁</a></li><li><a href="#dos">先找耗尽的资源</a></li><li><a href="#worms">病毒、蠕虫与僵尸网络</a></li><li><a href="#self-check">自测</a></li></ul></nav></details><div class="language-header"><span>中文讲解</span><span lang="en">English explanation</span></div><section class="lesson-section" id="lookup"><header class="section-head"><h2>域、区和一次域名解析</h2><p class="en-heading" lang="en">Domains, zones and one resolution</p></header><div class="pair-row"><div class="cell" lang="zh-CN"><p><strong>域（Domain）</strong> 是名字树上的子树。<strong>区（Zone）</strong> 是一组权威服务器管理的数据范围。父域里可以包含一个子域，但后者委托后会有自己的区。父区保存指向子区权威服务器的线索。</p>
+</div><div class="cell english" lang="en"><p>A <strong>domain</strong> is a subtree of names. A <strong>zone</strong> is the set of records managed by an authority. A child domain can remain in the parent&#39;s namespace while becoming a separately delegated zone. The parent publishes referral information.</p>
+</div></div><div class="pair-row"><div class="cell" lang="zh-CN"><p>以 www.example.net 为例。应用调用本机解析组件，系统可先查 hosts 和缓存。通常本机再向 <strong>递归解析器（Recursive Resolver）</strong> 请求最终结果。若无缓存，解析器从根找到 .net 的服务器，再询问 .net 获得 example.net 的委托，最后向相应 <strong>权威服务器（Authoritative Name Server）</strong> 取得记录。解析器向上游逐级询问的是 <strong>迭代查询（Iterative Query）</strong>。递归描述替客户找到结果的职责，迭代描述取得线索的过程。</p>
+</div><div class="cell english" lang="en"><p>Consider www.example.net. The application calls a local resolver component, which may consult hosts and caches. It usually asks a <strong>recursive resolver</strong> for the final result. On a cache miss, the resolver can ask the root for .net, ask .net for the delegation to example.net, then obtain its record from an <strong>authoritative name server</strong>. The resolver&#39;s step-by-step exchanges are <strong>iterative queries</strong>. Recursion is the service of finding a result for the client. Iteration is a method of following referrals.</p>
+</div></div><div class="pair-row"><div class="cell" lang="zh-CN"><div class="table-wrap"><table>
+<thead>
+<tr>
+<th>DNS 部分</th>
+<th>内容</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>Question</strong></td>
+<td>请求的某个名字、类型及类。</td>
+</tr>
+<tr>
+<td><strong>Answer</strong></td>
+<td>实际回答的记录。</td>
+</tr>
+<tr>
+<td><strong>Authority</strong></td>
+<td>提供相关权威信息，例如去哪里继续问。</td>
+</tr>
+<tr>
+<td><strong>Additional</strong></td>
+<td>提供相关附加数据，例如某些名称服务器的地址。</td>
+</tr>
+</tbody></table></div>
+</div><div class="cell english" lang="en"><div class="table-wrap"><table>
+<thead>
+<tr>
+<th>DNS section</th>
+<th>Contents</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>Question</strong></td>
+<td>A queried name, type and class.</td>
+</tr>
+<tr>
+<td><strong>Answer</strong></td>
+<td>Records that supply the answer.</td>
+</tr>
+<tr>
+<td><strong>Authority</strong></td>
+<td>Relevant authority information, such as a referral.</td>
+</tr>
+<tr>
+<td><strong>Additional</strong></td>
+<td>Related data, such as an address for certain name servers.</td>
+</tr>
+</tbody></table></div>
+</div></div><div class="pair-row"><div class="cell" lang="zh-CN"><p><strong>存活时间（Time to Live, TTL）</strong> 控制缓存有效时间。如果解析器在 t=0 得到 TTL=120 秒的记录，t=80 时允许使用仍有效的记录，剩余 TTL 约 40 秒。过期后需要按策略重新获得有效数据。</p>
+</div><div class="cell english" lang="en"><p>A <strong>time to live (TTL)</strong> bounds how long a cache can reuse a record. A record received at t=0 with TTL 120 seconds has about 40 seconds left at t=80. After expiration, the resolver needs valid data according to policy.</p>
+</div></div><p class="source">原讲义 / Slides · <span class="source-ref" title="lec9_dns.pdf">第 2–18 页</span></p></section><section class="lesson-section" id="dnssec"><header class="section-head"><h2>DNSSEC 和 HTTPS 验证谁</h2><p class="en-heading" lang="en">What DNSSEC and HTTPS each authenticate</p></header><div class="pair-row"><div class="cell" lang="zh-CN"><p><strong>缓存投毒（Cache Poisoning）</strong> 让解析器把错误信息留在缓存中，之后的请求也可能拿到同一结果。记录与待查询请求匹配，只能部分降低假回复风险。解析器还要限制一个区有权为哪些名字提供记录，并按配置验证签名。</p>
+</div><div class="cell english" lang="en"><p><strong>Cache poisoning</strong> places incorrect data in a resolver cache, making later clients receive the same result. Matching a response to a pending query provides only part of the check. The resolver also limits which names a zone can speak for and validates signatures according to its configuration.</p>
+</div></div><div class="pair-row"><div class="cell" lang="zh-CN"><p><strong>DNS 安全扩展（DNSSEC）</strong> 检查 DNS 记录集的来源与完整性。验证者从预配置的根信任锚开始，再沿父区到子区走。父区的 <strong>DS（Delegation Signer）</strong> 记录绑定子区密钥。子区的 <strong>DNSKEY</strong> 提供验证公钥，<strong>RRSIG</strong> 覆盖一组资源记录。验证后的 DNS 数据仍可读。</p>
+</div><div class="cell english" lang="en"><p><strong>DNS Security Extensions (DNSSEC)</strong> authenticate DNS record sets and protect their integrity. Start from a configured root trust anchor and follow delegations. The parent&#39;s <strong>DS (Delegation Signer)</strong> record binds a child key. The child&#39;s <strong>DNSKEY</strong> supplies a verification key, and an <strong>RRSIG</strong> covers a resource record set. The verified data remains readable.</p>
+</div></div><div class="pair-row"><div class="cell" lang="zh-CN"><p><strong>HTTPS</strong> 则验证发来证书并完成握手的端点能否代表浏览器请求的主机名。即使 DNS 返回错误 IP，拿不到有效主机名证书和相应持钥证明的端点仍会因 TLS 检查失败。反过来，DNSSEC 验证通过并不加密 HTTP 正文。把两种链分别画出来，父区委托和 CA 颁证的角色就不易混。</p>
+</div><div class="cell english" lang="en"><p><strong>HTTPS</strong> checks whether the peer presenting a certificate and finishing the handshake can represent the requested hostname. Even if DNS points at the wrong IP, a peer without a valid certificate for that name and the proper proof of possession fails TLS validation. Successful DNSSEC validation also leaves HTTP plaintext unencrypted. Draw the delegation chain and CA chain separately to keep the two roles clear.</p>
+</div></div><p class="source">原讲义 / Slides · <span class="source-ref" title="lec9_dns.pdf">第 19–35 页</span></p></section><section class="lesson-section" id="dos"><header class="section-head"><h2>先找耗尽的资源</h2><p class="en-heading" lang="en">Finding the exhausted resource</p></header><div class="pair-row"><div class="cell" lang="zh-CN"><p><strong>拒绝服务（Denial of Service, DoS）</strong> 让合法用户无法获得服务。首先要区分 <strong>网络带宽</strong>、<strong>连接状态</strong>、<strong>应用线程</strong> 及 <strong>处理时间</strong>。服务 CPU 不忙，链路仍可能已经满了。网络吞吐正常，应用线程仍可能被占着。</p>
+</div><div class="cell english" lang="en"><p>A <strong>denial of service (DoS)</strong> makes a service unavailable to legitimate users. Distinguish <strong>bandwidth</strong>, <strong>connection state</strong>, <strong>worker threads</strong> and <strong>processing time</strong> as possible bottlenecks. A link can be saturated while the server CPU is quiet. An application can run out of workers without saturating the link.</p>
+</div></div><div class="pair-row"><div class="cell" lang="zh-CN"><p><strong>SYN 洪泛（SYN Flood）</strong> 针对等待 TCP 握手完成的 <strong>半开连接（Half-Open Connection）</strong>。传统做法在收到初始 SYN 时记住部分状态。<strong>SYN Cookie</strong> 将后续验证所需的信息放进服务器的初始序号，只有收到有效的最后 ACK 才分配完整连接状态。它针对等待队列与内存压力，链路带宽仍需要其他保护。</p>
+</div><div class="cell english" lang="en"><p>A <strong>SYN flood</strong> stresses <strong>half-open connections</strong> awaiting completion of the TCP handshake. A traditional response to the initial SYN stores some state. A <strong>SYN cookie</strong> encodes verification inputs in the server&#39;s initial sequence number and waits for a valid final ACK before allocating full state. It addresses backlog and memory pressure, while bandwidth needs separate protection.</p>
+</div></div><div class="pair-row"><div class="cell" lang="zh-CN"><p><strong>分布式拒绝服务（DDoS）</strong> 来自多个源。<strong>反射（Reflection）</strong> 让第三方的响应流向受害者，<strong>放大（Amplification）</strong> 表示响应负载比触发它的请求大。讲义的 Smurf 是历史案例。定位时看瓶颈在哪里，再选择源地址验证、上游清洗、速率限制、容量隔离或监控响应。</p>
+</div><div class="cell english" lang="en"><p>A <strong>distributed denial of service (DDoS)</strong> comes from many sources. <strong>Reflection</strong> directs third-party replies toward the victim, and <strong>amplification</strong> means the response load exceeds the triggering request. Smurf is a historical illustration. Locate the bottleneck before selecting source-address validation, upstream filtering, rate controls, isolation, or monitoring and response.</p>
+</div></div><p class="source">原讲义 / Slides · <span class="source-ref" title="lec9_dns.pdf">第 36–47 页</span></p></section><section class="lesson-section" id="worms"><header class="section-head"><h2>病毒、蠕虫与僵尸网络</h2><p class="en-heading" lang="en">Viruses, worms and botnets</p></header><div class="pair-row"><div class="cell" lang="zh-CN"><p><strong>病毒（Virus）</strong> 通常依附在程序或文件上。<strong>蠕虫（Worm）</strong> 可以自动通过网络传播。课件用 Morris、Code Red、Nimda 比较不同历史场景。<strong>僵尸网络（Botnet）</strong> 指被共同控制的一组设备，它可以使用集中 <strong>命令与控制（Command and Control, C2）</strong> 或分布式传递。</p>
+</div><div class="cell english" lang="en"><p>A <strong>virus</strong> often attaches to a program or file. A <strong>worm</strong> can propagate automatically across a network. The slides compare historical examples such as Morris, Code Red and Nimda. A <strong>botnet</strong> is a set of controlled devices, which can receive instructions through centralized <strong>command and control (C2)</strong> or distributed communication.</p>
+</div></div><div class="pair-row"><div class="cell" lang="zh-CN"><p><strong>随机恒定传播模型（Random Constant Spread）</strong> 用 a 表示易受影响设备中已感染的比例。简化模型 da/dt=Ka(1−a) 同时看感染源比例 a 与仍可感染的比例 1−a。a=0.5 时乘积最大。刚开始源少，后期剩余设备少，两端增量都较小。这个模型为解释传播趋势服务。</p>
+</div><div class="cell english" lang="en"><p>The <strong>random constant spread</strong> model uses a for the fraction of susceptible devices already infected. The simplified equation da/dt=Ka(1−a) considers the infected fraction a and the remaining fraction 1−a. Their product peaks at a=0.5. At the beginning few sources exist, and at the end few devices remain. The model explains the shape of the growth trend.</p>
+</div></div><div class="pair-row"><div class="cell" lang="zh-CN"><p><strong>蜜罐（Honeypot）</strong> 在隔离环境中收集异常行为。正常诊断工具也可能出现在异常连接中。排查时把进程、连接方向、访问权限和事件日志放在一起，验证行为是否符合该设备角色。修补、隔离和监测可以降低传播与控制风险。</p>
+</div><div class="cell english" lang="en"><p>A <strong>honeypot</strong> collects suspicious behavior in an isolated setting. Ordinary diagnostic tools can also appear in unusual connections. Review process identity, connection direction, privileges and event logs together to see whether activity fits the device&#39;s role. Patching, isolation and monitoring help manage propagation and control risks.</p>
+</div></div><p class="source">原讲义 / Slides · <span class="source-ref" title="lec9_dns.pdf">第 48–67 页</span></p></section><section class="quiz" id="self-check"><header class="section-head"><h2>合上讲义自测</h2><p class="en-heading" lang="en">Check your understanding</p></header><div class="pair-row"><div class="cell" lang="zh-CN"><ol>
+<li>访问子域时，父区和权威区分别返回什么？</li>
+<li>DNSSEC 验证通过后，还需要 HTTPS 保护网页内容吗？</li>
+<li>SYN Cookie 主要减少哪一种开销？链路拥塞如何判断？</li>
+</ol>
+</div><div class="cell english" lang="en"><ol>
+<li>What does the parent return when resolving a delegated child, and what does the authoritative child return?</li>
+<li>After DNSSEC validation, why does web content still need HTTPS?</li>
+<li>Which cost does a SYN cookie mainly reduce? How do you identify link congestion?</li>
+</ol>
+</div></div><details><summary>查看答案 / Show answers</summary><div class="pair-row"><div class="cell" lang="zh-CN"><ol>
+<li>父区给委托线索，最终权威区给该名字的记录。</li>
+<li>DNSSEC 验证 DNS 数据。HTTPS 还要认证端点并保护 HTTP 内容。</li>
+<li>减少半开连接占用的状态。若入口带宽已满，要查看链路利用率并考虑上游防护。</li>
+</ol>
+</div><div class="cell english" lang="en"><ol>
+<li>The parent gives a referral. The final authority gives the requested record.</li>
+<li>DNSSEC authenticates DNS data. HTTPS authenticates the endpoint and protects HTTP content.</li>
+<li>It reduces state used by half-open connections. An already saturated link calls for examining link utilization and upstream protection.</li>
+</ol>
+</div></div></details></section><nav class="bottom" aria-label="讲次切换"><a href="l08.html">上一讲 · L08</a><a href="index.html">返回目录</a><a href="l10.html">下一讲 · L10</a></nav></main></body></html>
