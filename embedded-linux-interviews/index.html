@@ -196,6 +196,15 @@
 <p>自练：内存增长但 kmemleak 不报告，你会怎么验证是可达缓存、排队超限，还是应该归还的缓冲还被持有？再问：优化后中位数更快，为什么尾延迟可能变差？</p>
 <p><a href="https://docs.kernel.org/process/debugging/gdb-kernel-debugging.html" rel="noopener noreferrer">Linux 内核 GDB</a> · <a href="https://docs.kernel.org/dev-tools/kmemleak.html" rel="noopener noreferrer">kmemleak</a> · <a href="https://man7.org/linux/man-pages/man1/perf-stat.1.html" rel="noopener noreferrer">perf stat</a></p>
 </article>
+<article id="bytedance-ai-chip-bsp-v4l2-mmap" data-topic="驱动与 BSP" data-kind="实习"><div class="eyebrow">实习面经 · 驱动与 BSP</div><h3>字节 AI 芯片 BSP 验证暑期实习一面：相机驱动与 V4L2 mmap</h3>
+<p><strong>原帖题目要点：</strong> 原帖问了相机驱动框架、驱动开发中本人做过什么、V4L2 里 <code>mmap</code> 的用途、研究生课程、应用层更常用 C 还是 C++、C++ 的 <code>struct</code> 与 <code>class</code>、<code>static</code> 的含义，以及手写把二叉树原地展开成链表。作者赛前复习 PCIe，但没有把它列为本轮考题。</p>
+<p><strong>答 1｜相机驱动框架怎么讲？</strong> 我会分 Control Path（控制通路）和 Data Path（数据通路）。以一条常见链路为例：I²C 配传感器模式，像素走 MIPI CSI-2 到接收器，再经过采集或 ISP（图像信号处理器）；具体有没有 ISP 看硬件。Media Controller（媒体控制器）描述实体、端口和连接，传感器通常是 V4L2 Sub-device（子设备），抓帧应用通常从 /dev/videoX 操作 Video Node（视频节点）。先用 media-ctl 看拓扑，再看各级格式是否衔接和首帧有没有回来。I²C 有应答，不代表数据通路有帧。</p>
+<p><strong>答 2｜V4L2 <code>mmap</code> 有什么用？什么时候能把缓冲区还回去？</strong> <code>mmap</code>（内存映射）是把驱动分配的采集缓冲区映射到用户进程，不是每帧通过 read() 再拷一份。申请和查询用 <code>REQBUFS</code>、<code>QUERYBUF</code>，按 offset 和 length 映射；先 <code>QBUF</code> 入队再 <code>STREAMON</code>，<code>DQBUF</code> 后用户读，读完才 <code>QBUF</code> 还给驱动。映射还在也不代表你一直拥有缓冲；异步编码器还在读时就归还，驱动可能把下一帧写进去。要么等消费者结束，要么复制到自己管理的缓冲再归还。这里避免的是这一步的复制，不代表端到端 Zero Copy（零拷贝），也不自动等于 DMA-BUF 共享。</p>
+<p><strong>答 3｜C/C++、<code>struct</code>/<code>class</code> 和 <code>static</code> 怎么答？</strong> 先按自己实际负责的模块回答用 C 还是 C++，不要编比例。C++ 的 <code>struct</code> 和 <code>class</code> 都能有构造函数和虚函数，主要语言区别是默认成员访问权限和默认继承权限：<code>struct</code> 默认 public，<code>class</code> 默认 private。<code>static</code> 分开说：C 文件作用域的函数或对象是 Internal Linkage（内部链接），块内 <code>static</code> 对象具有 Static Storage Duration（静态存储期），跨调用保留状态；C++ 类的静态成员不属于某个实例，静态成员函数没有 this。项目和课程追问各举一个真例，说明做了什么、怎么验证。</p>
+<p><strong>答 4｜二叉树怎么展开成链表？</strong> 按 Preorder（先序遍历）保留根、左、右的顺序。先写简单方案：显式栈先压右再压左，弹出节点后把 prev.right 指向它，清空 prev.left。扫描一遍是 O(n)，栈最坏 O(h)，最后把尾节点左右置空。追问 O(1) 额外空间时，对每个有左子树的当前节点，先把原右子树接到左子树的最右节点，再把左子树搬到右指针，并清空左指针，沿右指针往前走。用空树、纯左链和左右皆有的树验证。</p>
+<p><strong>自练：</strong> 能读到 sensor ID，但 <code>STREAMON</code> 后 <code>DQBUF</code> 一直等，你怎么区分没有像素进来、媒体图格式不匹配、以及可用 buffer 已耗尽？如果要延迟归还，怎样确认编码端何时不再读它？</p>
+<p><a href="https://docs.kernel.org/driver-api/media/v4l2-subdev.html" rel="noopener noreferrer">Linux V4L2 Sub-device</a> · <a href="https://docs.kernel.org/userspace-api/media/v4l/mmap.html" rel="noopener noreferrer">V4L2 MMAP</a> · <a href="https://docs.kernel.org/userspace-api/media/v4l/vidioc-qbuf.html" rel="noopener noreferrer">V4L2 QBUF/DQBUF</a> · <a href="https://eel.is/c++draft/class.access" rel="noopener noreferrer">C++ 默认访问权限</a> · <a href="https://eel.is/c++draft/basic.stc.static" rel="noopener noreferrer">C++ 静态存储期</a> · <a href="https://docs.kernel.org/userspace-api/media/mediactl/media-controller-model.html" rel="noopener noreferrer">媒体拓扑</a></p>
+</article>
 <!-- ANSWER_ARTICLES_END -->
 </div><p>技术核对：<a href="https://docs.kernel.org/6.17/i2c/writing-clients.html" rel="noopener noreferrer">Linux I²C 驱动</a> · <a href="https://docs.kernel.org/i2c/fault-codes.html" rel="noopener noreferrer">I²C 错误码</a> · <a href="https://docs.kernel.org/driver-api/gpio/consumer.html" rel="noopener noreferrer">GPIO 描述符接口</a> · <a href="https://docs.kernel.org/locking/locktypes.html" rel="noopener noreferrer">内核锁规则</a></p></section>
 <section id="sources"><h2>原帖索引</h2><h3>嵌入式实习</h3><ol class="sources">
@@ -214,6 +223,7 @@
 <li><p><strong>海康 BSP 实习｜候选人记载 4 月 29 日面试，2025-08-04 发帖；轮次和岗位城市未注明。只收录原帖中的海康段。候选人反问得知方向偏 Android BSP，不把它写成相机专岗。</strong> <a href="https://www.nowcoder.com/feed/main/detail/b32a2f5f132e4eb1978cc11943d0d958" rel="noopener noreferrer">牛客原帖</a></p><a class="detail" href="#hikvision-bsp-bringup">查看题目与参考答案 →</a></li>
 <li><p><strong>影石 Insta360｜嵌入式实习｜GUI 与通信。</strong> 同一候选人的两轮复盘，一面约 30 分钟、无手写题；二面约 35 分钟。原帖页面分别显示 1 月 28 日、2 月 2 日，年份和岗位城市不作确认。候选人反问得知该组偏 GUI（图形用户界面）和通信，用的是商用闭源框架，不代表团队采用 LVGL。 <a href="https://www.nowcoder.com/discuss/846109305953587200" rel="noopener noreferrer">牛客一面原帖</a> · <a href="https://www.nowcoder.com/feed/main/detail/9bbb82fd0f7344b68ae531bdab232338" rel="noopener noreferrer">牛客二面原帖</a>。</p><a class="detail" href="#insta360-lvgl">查看题目与参考答案 →</a></li>
 <li><p><strong>此芯科技｜Linux 软件实习｜内核调试和性能证据。</strong> 原帖标题标 3 月 5 日，页面显示 3 月 9 日编辑；年份、轮次和岗位城市未注明。候选人称收到录用通知。 <a href="https://www.nowcoder.com/feed/main/detail/dd20e1b561db4c068ebdd3369271bb96" rel="noopener noreferrer">牛客原帖</a>。</p><a class="detail" href="#cixintek-linux-gdb-memory-pool">查看题目与参考答案 →</a></li>
+<li><p><strong>字节｜AI 芯片 BSP 验证开发暑期实习一面。</strong> 牛客第一人称复盘：作者写明 2 月 28 日线上一面，约 30 分钟；原帖发布于 2025 年 4 月 3 日，岗位城市未注明。 <a href="https://www.nowcoder.com/feed/main/detail/4704d93b00a94c9bad25d5a8944ea017" rel="noopener noreferrer">牛客原帖</a>。</p><a class="detail" href="#bytedance-ai-chip-bsp-v4l2-mmap">查看题目与参考答案 →</a></li>
 <!-- INTERNSHIP_SOURCES_END -->
 </ol><h3>校招、历史面经和邻近岗位</h3><ol class="sources">
 <!-- REFERENCE_SOURCES_START -->
@@ -239,6 +249,7 @@
 <p>2026-11-17：新增「面试题与参考答案」，按面经分组保留题目要点、示范答法及项目练习提示。</p>
 <p>2026-11-17：首版加入牛客与小红书的原帖，搜索不限城市。按技术方向收录，优先实习面经；校招和历史汇编单列。工作地点仅在原帖或对应岗位资料写明时标注。</p>
 <p>2026-11-23：补入此芯科技 Linux 软件实习，整理内核 GDB、泄漏证据、内存池性能对照和平台追问。</p>
+<p>2026-11-24：补入字节 AI 芯片 BSP 验证暑期实习一面，整理相机驱动框架、V4L2 mmap 与缓冲区所有权、C/C++ 和二叉树展开题。</p>
 <!-- UPDATE_LOG_END -->
 </section>
           <footer class="page-end"><a href="../">返回我的笔记</a><a href="#main">回到开头 ↑</a></footer>
@@ -267,6 +278,7 @@
 <a href="#hikvision-bsp-bringup">海康 BSP 实习：启动链、内核裁剪与字符设备</a>
 <a href="#insta360-lvgl">影石嵌入式实习两轮：LVGL 移植、项目分工与 PR</a>
 <a href="#cixintek-linux-gdb-memory-pool">此芯科技 Linux 软件实习：内核 GDB、内存池和性能对照</a>
+<a href="#bytedance-ai-chip-bsp-v4l2-mmap">字节 AI 芯片 BSP 验证暑期实习一面：相机驱动与 V4L2 mmap</a>
 <!-- ENTRY_LINKS_END -->
 </nav>
         <nav class="section-links" aria-label="其他章节"><a href="#sources">原帖索引</a><a href="#practice">练习清单</a><a href="#updates">更新记录</a></nav>
