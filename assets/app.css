@@ -54,7 +54,7 @@ body{background:var(--surface)}
 .library-view>.search-field{max-width:none;width:100%;padding:12px 14px;border:1px solid var(--line);margin-bottom:16px;background:var(--surface)}
 .library-view>.search-field:focus-within{outline:2px solid var(--blue)}
 .library-view>.search-field input{font-size:16px}
-.continue-note{display:block;margin:0 0 18px;color:var(--blue);overflow-wrap:anywhere}
+.continue-note{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--blue)}
 .note-view[data-mode=read] {
   --reading-width:1120px;
   --reading-gutter:clamp(16px,2.5vw,40px);
