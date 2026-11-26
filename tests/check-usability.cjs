@@ -7,6 +7,20 @@ const writes=repo=>repo.calls.filter(c=>c.method!=='GET').length;
 async function open(a,path=id){a.w.location.hash='#note/'+encodeURIComponent(path);await wait(()=>!a.$('noteView').hidden&&a.$('noteTitle').value,'open note');}
 async function run(){
   {
+    const repo=new Repo();repo.seed();const a=await app(repo),{$,w}=a;
+    assert.equal(w.document.querySelector('.workspace-brand a').textContent,'我的笔记');
+    assert.equal($('viewTitle').textContent,'笔记本');
+    for(const route of ['#home','#recent','#favorites','#drafts'])assert.equal($('sidebar').querySelector(`a[href="${route}"]`),null);
+    assert.equal($('sidebar').textContent.includes('资料与指南'),false);
+    assert.ok($('notebookList').contains($('guideNav')));
+    assert.deepEqual([...$('notebookCategories').querySelectorAll('.notebook-count')].map(node=>node.textContent),['1']);
+    $('newNoteButton').click();await wait(()=>!$('noteView').hidden,'draft in empty category');
+    assert.equal($('notebookCategories').querySelector('[data-notebook="学习笔记"] .notebook-count').textContent,'1');
+    w.document.querySelector('.back-to-library').click();await wait(()=>!$('libraryView').hidden,'back to notebook');
+    assert.ok($('documentList').querySelector('.draft-badge'));
+    checks.push('侧栏只列非空笔记本，指南统一归入笔记本，草稿仍出现在列表中');a.close();
+  }
+  {
     const repo=new Repo();repo.seed();const titled=note('platform_match 函数',false),bodyOnly={...note('A 驱动',false),body:'## 匹配流程\n\n内核调用 platform_match 检查设备'};
     repo.put(titled.id,serialize(titled));repo.put(bodyOnly.id,serialize(bodyOnly));const a=await app(repo,{route:'notebook/'+encodeURIComponent('测试')}),{$,w}=a;
     $('sortSelect').value='title';write(a,'searchInput','platform_match');await wait(()=>$('searchResults').querySelector('a'),'search');const results=$('searchResults').querySelectorAll('a');
