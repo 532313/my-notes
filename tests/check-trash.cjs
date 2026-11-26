@@ -65,7 +65,7 @@ async function run(){
   {
     const repo=new Repo();repo.seed();const a=await app(repo,{route:'trash'}),{$,w}=a;
     w.document.querySelector('[data-permanent-delete="notes/回收笔记.md"]').click();assert.ok($('connectDialog').open);assert.ok(!$('deleteDialog').open);await a.connect();await wait(()=>$('deleteDialog').open,'confirm after auth');assert.ok(repo.files.has('notes/回收笔记.md'));$('cancelDeleteButton').click();assert.ok(repo.files.has('notes/回收笔记.md'));checks.push('重新连接后仍需确认，不自动永久删除');
-    w.location.hash='#home';await wait(()=>$('viewTitle').textContent==='全部内容','home');assert.equal(w.document.querySelectorAll('[data-permanent-delete]').length,0);assert.ok($('batchPermanentDeleteButton').hidden);checks.push('永久删除入口仅出现在回收站');a.close();
+    w.location.hash='#home';await wait(()=>$('viewTitle').textContent==='笔记本','home');assert.equal(w.document.querySelectorAll('[data-permanent-delete]').length,0);assert.ok($('batchPermanentDeleteButton').hidden);checks.push('永久删除入口仅出现在回收站');a.close();
   }
   // Mixed cloud/local/PDF batch: one atomic update, metadata pruning, other files retained.
   {

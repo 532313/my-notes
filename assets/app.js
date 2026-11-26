@@ -19,7 +19,7 @@
   function date(value){if(!value||Number.isNaN(Date.parse(value)))return '—';return new Intl.DateTimeFormat('zh-CN',{month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit'}).format(new Date(value));}
   function allNotes(){const map=new Map(documents.map(d=>[d.id,d]));for(const draft of Object.values(drafts))map.set(draft.id,{...draft,localDraft:true});return [...map.values()];}
   function updateDraftControls(){const exists=current?.type==='note'&&!!drafts[current.id];$('discardDraftButton').hidden=!exists;$('noteView').classList.toggle('has-draft',exists);$('discardDraftButton').textContent=documents.some(d=>d.id===current?.id)?'放弃本机修改':'丢弃草稿';$('discardDraftButton').disabled=saving||deleting;}
-  function persistDrafts(){const saved=disk.write('drafts',drafts);$('draftCount').textContent=Object.keys(drafts).length||'';updateDraftControls();if(!saved){$('saveStatus').textContent='本机存储已满，请及时导出或保存';notify('本机存储空间不足，请导出 Markdown 或保存到 GitHub。');}return saved;}
+  function persistDrafts(){const saved=disk.write('drafts',drafts);updateDraftControls();if(!saved){$('saveStatus').textContent='本机存储已满，请及时导出或保存';notify('本机存储空间不足，请导出 Markdown 或保存到 GitHub。');}return saved;}
   function persistCurrent(){if(!current||current.type!=='note')return;const next={...current,title:$('noteTitle').value,notebook:$('noteNotebook').value||'学习笔记',body:$('noteBody').value,updated:now()};current=next;$('headerContext').textContent=next.title.trim()||'未命名笔记';$('noteReadTitle').textContent=next.title.trim()||'未命名笔记';drafts[next.id]=next;if(persistDrafts())$('saveStatus').textContent='草稿已保存在此设备';updateNotebooks();}
   function captureEditor(){clearTimeout(draftTimer);if(current&&current.type==='note'&&drafts[current.id])persistCurrent();}
   function addRecent(id){recent=[id,...recent.filter(x=>x!==id)].slice(0,40);disk.write('recent',recent);}
@@ -28,8 +28,16 @@
   systemTheme.addEventListener('change',()=>{if(theme==='system')setTheme(theme,false);});
   function sidebar(open){if(matchMedia('(max-width:850px)').matches){$('sidebar').classList.toggle('open',open);$('backdrop').hidden=!open;document.body.classList.toggle('menu-open',open);$('sidebar').inert=!open;}else{document.body.classList.toggle('compact',!open);$('sidebar').inert=!open;}$('menuButton').setAttribute('aria-expanded',String(open));}
   function requireConnection(){if(store.token)return true;$('connectError').textContent='';$('connectDialog').showModal();return false;}
-  function updateNotebooks(){const counts=new Map([['学习笔记',0],['参考资料',0]]);for(const doc of allNotes().filter(d=>!d.trashed))counts.set(doc.notebook,(counts.get(doc.notebook)||0)+1);$('notebookList').innerHTML=[...counts].map(([name,count])=>`<a href="#notebook/${encodeURIComponent(name)}" data-notebook="${esc(name)}"><svg class="ui-icon" aria-hidden="true"><use href="#i-notebook"></use></svg><span class="notebook-name">${esc(name)}</span><span>${count}</span></a>`).join('');$('notebookOptions').innerHTML=[...counts.keys()].map(name=>`<option value="${esc(name)}"></option>`).join('');markNavigation();}
-  function markNavigation(){document.querySelectorAll('[data-view]').forEach(a=>{a.classList.toggle('active',a.dataset.view===currentRoute);});$('guideNav').classList.toggle('active',currentRoute==='guide');document.querySelectorAll('[data-notebook]').forEach(a=>a.classList.toggle('active',currentRoute==='notebook/'+a.dataset.notebook));}
+  function updateNotebooks(){
+    const counts=new Map([['学习笔记',0],['参考资料',0]]);
+    for(const doc of allNotes().filter(d=>!d.trashed))counts.set(doc.notebook,(counts.get(doc.notebook)||0)+1);
+    $('notebookCategories').innerHTML=[...counts].filter(([,count])=>count>0).map(([name,count])=>
+      `<a href="#notebook/${encodeURIComponent(name)}" data-notebook="${esc(name)}"><svg class="ui-icon" aria-hidden="true"><use href="#i-notebook"></use></svg><span class="notebook-name">${esc(name)}</span><span class="notebook-count">${count}</span></a>`
+    ).join('');
+    $('notebookOptions').innerHTML=[...counts.keys()].map(name=>`<option value="${esc(name)}"></option>`).join('');
+    markNavigation();
+  }
+  function markNavigation(){document.querySelectorAll('[data-view]').forEach(a=>{a.classList.toggle('active',a.dataset.view===currentRoute);});document.querySelectorAll('[data-notebook]').forEach(a=>a.classList.toggle('active',currentRoute==='notebook/'+a.dataset.notebook));}
   function showOfflineState(){$('cloudStatus').textContent='离线';$('cloudStatus').dataset.state='offline';$('cloudStatus').title='当前离线，草稿仍保存在此设备；联网后可同步。';$('listStatus').textContent='当前离线，显示此设备已缓存的内容。草稿继续保存在本机，联网后可同步。';}
   async function refreshLibrary(quiet=false){
     if(deleting)return;
@@ -65,9 +73,10 @@
     if(search){const query=reader.fold(search);items.sort((first,second)=>Number(reader.fold(second.title||'').includes(query))-Number(reader.fold(first.title||'').includes(query)));}
     const resume=currentRoute==='home'&&!search&&recent.map(id=>items.find(doc=>doc.id===id&&doc.type==='note'&&!doc.localDraft&&disk.read('reading.'+id,null)?.section)).find(Boolean);
     $('continueNote').hidden=!resume;if(resume){$('continueNote').href=noteHash(resume.id);$('continueNote').textContent='继续阅读：'+resume.title;}
-    const titles={home:'全部内容',recent:'最近访问',favorites:'收藏',drafts:'本机草稿',trash:'回收站'};
-    $('viewTitle').textContent=titles[currentRoute]||currentRoute.slice(9);$('headerContext').textContent=$('viewTitle').textContent;
-    $('viewSubtitle').textContent=trashed?'可恢复文档，或永久删除不再需要的内容。':currentRoute==='drafts'?'草稿只在当前设备保存，发布后才会同步。':'阅读资料，也留下自己的理解。';
+    const titles={home:'笔记本',recent:'最近访问',favorites:'收藏',drafts:'本机草稿',trash:'回收站'};
+    $('viewTitle').textContent=titles[currentRoute]||currentRoute.slice(9);$('headerContext').textContent=currentRoute==='home'?'':$('viewTitle').textContent;
+    const subtitle=trashed?'可恢复文档，或永久删除不再需要的内容。':currentRoute==='drafts'?'草稿只在当前设备保存，发布后才会同步。':'';
+    $('viewSubtitle').textContent=subtitle;$('viewSubtitle').hidden=!subtitle;
     document.querySelector('.guide-feature').hidden=!(currentRoute==='home'||currentRoute==='recent')||!!search;
     $('documentCount').textContent=items.length+' 条内容';
     visibleDocIds=items.map(d=>d.id);selectedIds=new Set([...selectedIds].filter(id=>visibleDocIds.includes(id)));if(search)selectedIds.clear();
