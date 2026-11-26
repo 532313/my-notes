@@ -77,12 +77,15 @@
     $('viewTitle').textContent=titles[currentRoute]||currentRoute.slice(9);$('headerContext').textContent=currentRoute==='home'?'':$('viewTitle').textContent;
     const subtitle=trashed?'可恢复文档，或永久删除不再需要的内容。':currentRoute==='drafts'?'草稿只在当前设备保存，发布后才会同步。':'';
     $('viewSubtitle').textContent=subtitle;$('viewSubtitle').hidden=!subtitle;
-    $('documentCount').textContent=items.length+' 条内容';
+    const hydrating=!!refreshPromise&&!documents.length&&!Object.keys(drafts).length&&!search&&!trashed;
+    $('documentCount').textContent=hydrating?'正在同步笔记…':items.length+' 条内容';
+    if(hydrating)$('listStatus').textContent='正在从 GitHub 载入笔记列表…';
     visibleDocIds=items.map(d=>d.id);selectedIds=new Set([...selectedIds].filter(id=>visibleDocIds.includes(id)));if(search)selectedIds.clear();
-    $('documentList').innerHTML=items.map(d=>{const href=d.type==='pdf'?pdfHash(d.id):noteHash(d.id),title=d.title||'未命名文档';const snippet=d.type==='pdf'?'PDF 参考资料':(d.body||'').replace(/[#*`>\[\]]/g,'').replace(/\s+/g,' ').slice(0,90)||'还没有正文';
+    const plainSnippet=body=>(body||'').replace(/!\[([^\]]*)\]\([^)]*\)/g,'$1').replace(/\[([^\]]+)\]\([^)]*\)/g,'$1').replace(/<!--[\s\S]*?-->/g,' ').replace(/<[^>]+>/g,' ').replace(/[#*`>_~|]/g,'').replace(/\s+/g,' ').trim().slice(0,96)||'还没有正文';
+    $('documentList').innerHTML=items.map(d=>{const href=d.type==='pdf'?pdfHash(d.id):noteHash(d.id),title=d.title||'未命名文档';const snippet=d.type==='pdf'?'PDF 参考资料':plainSnippet(d.body);
       const actions=trashed?`<button class="restore" type="button" data-restore="${esc(d.id)}" aria-label="恢复文档：${esc(title)}">恢复</button><button class="doc-delete" type="button" data-permanent-delete="${esc(d.id)}" aria-label="永久删除文档：${esc(title)}">永久删除</button>`:`${d.type==='note'?`<button type="button" data-favorite="${esc(d.id)}" class="${d.favorite?'selected':''}" aria-label="${d.favorite?'取消收藏':'收藏'}">${d.favorite?'★':'☆'}</button>`:''}<button class="doc-delete" type="button" data-trash="${esc(d.id)}" aria-label="删除文档：${esc(title)}">删除</button>`;
       return `<div class="document-row"><input type="checkbox" data-select="${esc(d.id)}" aria-label="选择文档：${esc(title)}" ${selectedIds.has(d.id)?'checked':''}><a class="doc-main" href="${href}"><span class="file-icon ${d.type==='pdf'?'pdf-icon':'note-icon'}">${d.type==='pdf'?'PDF':'文'}</span><span class="doc-text"><strong>${esc(title)}${d.localDraft?'<span class="draft-badge">草稿</span>':''}</strong><small>${esc(snippet)}</small></span></a><span class="doc-notebook">${esc(d.notebook)}</span><span class="doc-date">${date(d.updated)}</span><span class="doc-actions">${actions}</span></div>`;}).join('');updateSelection();
-    $('emptyState').hidden=items.length!==0;$('emptyState').querySelector('h2').textContent=search?'没有找到匹配内容':trashed?'回收站是空的':'在这里，留下你的理解';$('emptyState').querySelector('p').textContent=search?'搜索范围：'+$('viewTitle').textContent+'。试试其他关键词，或清除搜索。':trashed?'移入回收站的文档会显示在这里。':'新建一篇笔记，或导入已有的 Markdown 文件。';$('clearSearch').hidden=!search;$('emptyNewButton').hidden=!!search||trashed;$('documentList').parentElement.hidden=items.length===0;
+    $('emptyState').hidden=hydrating||items.length!==0;$('emptyState').querySelector('h2').textContent=search?'没有找到匹配内容':trashed?'回收站是空的':'在这里，留下你的理解';$('emptyState').querySelector('p').textContent=search?'搜索范围：'+$('viewTitle').textContent+'。试试其他关键词，或清除搜索。':trashed?'移入回收站的文档会显示在这里。':'新建一篇笔记，或导入已有的 Markdown 文件。';$('clearSearch').hidden=!search;$('emptyNewButton').hidden=!!search||trashed;$('documentList').parentElement.hidden=hydrating||items.length===0;
     markNavigation();reader.searchLibrary(items,search);if(deleting)setDocumentBusy(true);
   }
   function newNote(notebook='学习笔记',source=null,title='未命名笔记',body=''){

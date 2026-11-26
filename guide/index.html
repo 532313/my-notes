@@ -11,7 +11,7 @@
     // Apply the saved preference before first paint; default to the OS theme.
     (()=>{let mode='system';try{mode=JSON.parse(localStorage.getItem('rk3568.themeMode'))||'system';}catch{}if(!['system','light','dark'].includes(mode))mode='system';document.documentElement.classList.toggle('dark',mode==='dark'||(mode==='system'&&matchMedia('(prefers-color-scheme: dark)').matches));document.documentElement.dataset.theme=mode;})();
   </script>
-  <link rel="stylesheet" href="3568阅读资源/reader.css?v=20261105-structure">
+  <link rel="stylesheet" href="3568阅读资源/reader.css?v=20261126-anthropic">
   <script defer src="3568阅读资源/catalog.js"></script>
   <script defer src="3568阅读资源/vendor/highlight.min.js"></script>
   <script defer src="3568阅读资源/vendor/dts.min.js"></script>
