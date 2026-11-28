@@ -703,6 +703,48 @@
 </div>
 <p class="qa-note">技术资料：<a href="https://man7.org/linux/man-pages/man7/unix.7.html" rel="noopener noreferrer">Unix socket</a> · <a href="https://gstreamer.freedesktop.org/documentation/application-development/basics/pads.html" rel="noopener noreferrer">GStreamer pads/caps</a> · <a href="https://gstreamer.freedesktop.org/documentation/app/appsink.html" rel="noopener noreferrer">appsink</a> · <a href="https://gstreamer.freedesktop.org/documentation/coreelements/tee.html" rel="noopener noreferrer">tee</a> · <a href="https://gstreamer.freedesktop.org/documentation/coreelements/queue.html" rel="noopener noreferrer">queue</a> · <a href="https://docs.kernel.org/userspace-api/media/v4l/mmap.html" rel="noopener noreferrer">V4L2 MMAP</a> · <a href="https://docs.kernel.org/userspace-api/media/v4l/vidioc-g-parm.html" rel="noopener noreferrer">V4L2 帧间隔</a> · <a href="https://docs.kernel.org/userspace-api/media/mediactl/media-controller-model.html" rel="noopener noreferrer">Media Controller</a></p>
 </article>
+<article id="cvte-linux-cpp-freertos" data-topic="并发与基础" data-kind="实习"><div class="eyebrow">实习面经 · 并发与基础</div><h3>CVTE 嵌入式软件开发实习（Linux 方向）：C++、FreeRTOS 与整数解析</h3>
+<p class="qa-note">牛客作者记录的嵌入式软件开发实习技术面，2025 年 5 月 24 日发布。面试日期、轮次编号和岗位城市未注明。按原帖 8 个编号还原，原帖多为考点短句；参考答案不是现场原答。 <span class="qa-source"><a href="https://www.nowcoder.com/discuss/755715142603513856" rel="noopener noreferrer">牛客原帖</a></span></p>
+<div class="qa-list"><h4>题目清单 <span class="qa-count">8 题</span></h4><ol class="qa-question-list"><li><a href="#cvte-linux-cpp-freertos-q1">C++ 怎样定义和选择函数重载？</a></li><li><a href="#cvte-linux-cpp-freertos-q2">纯虚函数有哪些特点？</a></li><li><a href="#cvte-linux-cpp-freertos-q3">数组和链表的存储方式、访问和修改成本有什么不同？</a></li><li><a href="#cvte-linux-cpp-freertos-q4">栈和队列的出入顺序分别是什么？</a></li><li><a href="#cvte-linux-cpp-freertos-q5">Linux 多进程和多线程有什么区别，什么时候选哪个？</a></li><li><a href="#cvte-linux-cpp-freertos-q6">Linux 和 FreeRTOS 的典型差别是什么？</a></li><li><a href="#cvte-linux-cpp-freertos-q7">死锁是怎么形成的？</a></li><li><a href="#cvte-linux-cpp-freertos-q8">手写十进制字符转整数：数字中夹字母或超出范围时怎么处理？</a></li></ol></div>
+<div class="qa-section"><div class="qa-head"><h4>逐题参考答案</h4><button class="qa-toggle" type="button" hidden>展开本组答案</button></div>
+<details class="qa-item" id="cvte-linux-cpp-freertos-q1"><summary><span class="qa-num">1</span><span>C++ 怎样定义和选择函数重载？</span></summary><div class="qa-answer"><p><strong>参考答案：</strong>Overloading（重载）是同一作用域中用同一个名字提供不同参数签名，例如 write(int) 和 write(const char*)。调用时编译器先收集候选，再筛出能接这些实参的函数，最后按转换等规则选最佳匹配；例如 write(1) 优先匹配 int，不必先转 double。</p><p>不能只靠返回类型区分两个普通函数，也别把重载和 override（重写）混在一起。重载先在编译期选签名；如果最终选中的是虚函数，再由动态类型决定通常调用哪个实现。</p></div></details>
+<details class="qa-item" id="cvte-linux-cpp-freertos-q2"><summary><span class="qa-num">2</span><span>纯虚函数有哪些特点？</span></summary><div class="qa-answer"><p><strong>参考答案：</strong>Pure virtual function（纯虚函数）在类里用 = 0 声明。只要还有纯虚函数没有非纯的最终重写，类就是 abstract class（抽象类），不能直接实例化，但可以通过基类指针或引用操作子类实例。子类用 override 能让编译器检查签名是不是确实重写。</p><p>纯虚函数也可以有类外定义，不等于它一定没有代码。纯虚析构函数也可以让类保持抽象，但仍要提供定义，销毁派生对象时基类析构会走到它。通过基类指针删除对象时，如果这是接口支持的用法，基类析构函数通常应当是 virtual（虚函数）。</p></div></details>
+<details class="qa-item" id="cvte-linux-cpp-freertos-q3"><summary><span class="qa-num">3</span><span>数组和链表的存储方式、访问和修改成本有什么不同？</span></summary><div class="qa-answer"><p><strong>参考答案：</strong>Array（数组）的元素连续，按下标取值是 O(1)，顺序访问通常对 cache locality（缓存局部性）更友好。普通单链表节点可以分散，要顺着指针找第 k 个节点，通常是 O(k)，每个节点也多带一个链接字段。</p><p>数组在中间插入、删除通常要移动后面的元素。链表只有在已知合适位置（单链表删除通常要有前驱）时改链接才是 O(1)，先找位置仍可能是 O(n)。固定容量帧缓冲更适合连续槽位；若要频繁在已知位置摘挂节点，链表才有优势。</p></div></details>
+<details class="qa-item" id="cvte-linux-cpp-freertos-q4"><summary><span class="qa-num">4</span><span>栈和队列的出入顺序分别是什么？</span></summary><div class="qa-answer"><p><strong>参考答案：</strong>Stack（栈）是 LIFO（后进先出），例如函数返回、撤销和深度优先遍历。Queue（队列）通常指 FIFO（先进先出），例如生产者把工作从尾部入队，消费者从头部取，按顺序处理。它们是访问规则，不等于底层分别只能用数组或链表。</p><p>固定容量 FIFO 可以用 circular buffer（环形缓冲区），头尾下标循环推进，不用每次把数组整体搬一遍。多线程时另外处理同步与满队列策略；丢最旧属于过载取舍，不是 FIFO 天生会丢数据。</p></div></details>
+<details class="qa-item" id="cvte-linux-cpp-freertos-q5"><summary><span class="qa-num">5</span><span>Linux 多进程和多线程有什么区别，什么时候选哪个？</span></summary><div class="qa-answer"><p><strong>参考答案：</strong>进程通常有各自的虚拟地址空间，适合划隔离边界；需要交换数据时用 IPC（进程间通信），例如 socket 或共享内存。线程共享本进程的地址空间和打开的文件描述符，但各有栈、寄存器状态和线程局部存储，通常在共享数据上协作。</p><p>采集和编码要频繁交接缓冲时，线程配有界队列通常更直接，但要定义 buffer ownership（缓冲所有权）和停止顺序。若希望某个服务崩溃后能独立重启，可拆为进程，但需补上 IPC 协议、重连和故障恢复。不是进程一律慢、线程一律快。</p></div></details>
+<details class="qa-item" id="cvte-linux-cpp-freertos-q6"><summary><span class="qa-num">6</span><span>Linux 和 FreeRTOS 的典型差别是什么？</span></summary><div class="qa-answer"><p><strong>参考答案：</strong>我按目标和运行模型说。Linux 常用于有 MMU（内存管理单元）的 SoC，提供用户态进程隔离、文件系统和网络等完整环境。FreeRTOS 更常用于资源紧的 MCU，典型配置下 task（任务）共享地址空间，没有 Linux 式进程隔离；也有支持 MPU（内存保护单元）的端口。</p><p>常见抢占配置下，FreeRTOS 优先跑最高优先级的就绪任务，同优先级是否按 tick 切换看配置。普通 Linux 兼顾公平和吞吐，也有实时调度策略及 PREEMPT_RT 来降低延迟。选型看 worst-case latency（最坏延迟）、驱动、内存和部署需求；不能只凭用了 RTOS 就保证不超时。</p></div></details>
+<details class="qa-item" id="cvte-linux-cpp-freertos-q7"><summary><span class="qa-num">7</span><span>死锁是怎么形成的？</span></summary><div class="qa-answer"><p><strong>参考答案：</strong>Deadlock（死锁）可以用四个条件解释：mutual exclusion（互斥使用）、hold and wait（持有并等待）、no preemption（资源不能被强行剥夺）、circular wait（循环等待）。例如线程 A 拿了 X 等 Y，线程 B 拿了 Y 等 X，就都过不去了。</p><p>工程上优先减少嵌套获取锁，并规定全局 lock ordering（加锁顺序），例如都先拿 X 再拿 Y；C++17 在适合的代码里也可用 std::scoped_lock 成组获取多个锁。持锁时避免阻塞 I/O 和不可控回调。超时可帮助诊断和恢复，但不代表不会死锁，也不是普通竞争或长期饥饿。</p></div></details>
+<details class="qa-item" id="cvte-linux-cpp-freertos-q8"><summary><span class="qa-num">8</span><span>手写十进制字符转整数：数字中夹字母或超出范围时怎么处理？</span></summary><div class="qa-answer"><p><strong>参考答案：</strong>先定输入契约：这里解析完整的带可选负号十进制串，不跳过空白，不吃前缀；空串、只有负号、夹字母或尾巴没读完都报错。若需求是「读数字前缀」，12a3 可以返回 12 和停止位置；若是「提取数字」，才会拼成 123。这是另外两种协议，不能默认过滤字母。</p><p>手写时我用负数累积，直接覆盖 INT_MIN，不对它做取反。每读一位，先用阈值检查乘 10 再减这一位是否越界；一旦越界只继续检验剩余字符，不再做算术。超出 int 返回范围错误；如果业务确实要更长，才选宽类型或多精度。工程里可用 C++17 from_chars 替换手写，但也要同时检查错误码和是否读到结尾。</p><pre><code>#include &lt;limits&gt;
+#include &lt;string_view&gt;
+
+enum class Parse { ok, invalid, out_of_range };
+
+Parse decimal_int(std::string_view s, int&amp; out) {
+    if (s.empty()) return Parse::invalid;
+    const bool neg = s.front() == &#39;-&#39;;
+    if (neg) s.remove_prefix(1);
+    if (s.empty()) return Parse::invalid;
+    const int limit = neg ? std::numeric_limits&lt;int&gt;::min()
+                          : -std::numeric_limits&lt;int&gt;::max();
+    int value = 0;
+    bool overflow = false;
+    for (const char c : s) {
+        if (c &lt; &#39;0&#39; || c &gt; &#39;9&#39;) return Parse::invalid;
+        const int digit = c - &#39;0&#39;;
+        if (overflow) continue;
+        if (value &lt; limit / 10 ||
+            (value == limit / 10 &amp;&amp; digit &gt; -(limit % 10))) {
+            overflow = true;
+        } else {
+            value = value * 10 - digit;
+        }
+    }
+    if (overflow) return Parse::out_of_range;
+    out = neg ? value : -value;
+    return Parse::ok;
+}</code></pre><p>边界自测：空串、仅负号、带空白、12a3、INT_MIN、INT_MAX，以及正负各越界一位。失败时不修改输出。</p></div></details>
+</div><p class="qa-note">技术资料：<a href="https://eel.is/c++draft/over" rel="noopener noreferrer">C++ 重载</a> · <a href="https://eel.is/c++draft/class.abstract" rel="noopener noreferrer">抽象类</a> · <a href="https://man7.org/linux/man-pages/man7/pthreads.7.html" rel="noopener noreferrer">Pthreads</a> · <a href="https://www.freertos.org/Documentation/02-Kernel/02-Kernel-features/01-Tasks-and-co-routines/04-Task-scheduling" rel="noopener noreferrer">FreeRTOS 调度</a> · <a href="https://docs.kernel.org/core-api/real-time/differences.html" rel="noopener noreferrer">PREEMPT_RT</a> · <a href="https://eel.is/c++draft/charconv.from.chars" rel="noopener noreferrer">from_chars</a></p>
+</article>
 <!-- ANSWER_ARTICLES_END -->
 </div><p>技术核对：<a href="https://docs.kernel.org/6.17/i2c/writing-clients.html" rel="noopener noreferrer">Linux I²C 驱动</a> · <a href="https://docs.kernel.org/i2c/fault-codes.html" rel="noopener noreferrer">I²C 错误码</a> · <a href="https://docs.kernel.org/driver-api/gpio/consumer.html" rel="noopener noreferrer">GPIO 描述符接口</a> · <a href="https://docs.kernel.org/locking/locktypes.html" rel="noopener noreferrer">内核锁规则</a></p></section>
 <section id="sources"><h2>原帖索引</h2><h3>嵌入式实习</h3><ol class="sources">
@@ -725,6 +767,7 @@
 <li><p><strong>影石 BSP 日常实习一面：I²C、SPI、设备树和中断。</strong> 牛客第一人称复盘，作者记载 9 月 24 日一面约 45 分钟，2026 年 9 月 28 日发帖，岗位城市未注明。<a href="https://www.nowcoder.com/feed/main/detail/f5ed6d5213634b2b9d11a27a849fba60" rel="noopener noreferrer">牛客原帖</a>。</p><a class="detail" href="#insta360-bsp-i2c-spi-irq">查看题目与参考答案 →</a></li>
 <li><p><strong>vivo 嵌入式暑期实习：Linux 调度、内存和驱动。</strong> 按原帖顺序整理 18 道技术题，涵盖调度、内存、RCU、IRQ 与驱动资源清理；岗位城市未注明。<a href="https://www.nowcoder.com/discuss/888836210213289984" rel="noopener noreferrer">牛客原帖</a>。</p><a class="detail" href="#vivo-linux-kernel-scheduling-driver">查看题目与参考答案 →</a></li>
 <li><p><strong>影石嵌入式暑期实习一面：GStreamer 与 V4L2 采集显示。</strong> 公开部分考到进程间通信、GStreamer 选型、V4L2 缓冲交接、帧率和 1080p；原帖 2024 年 12 月 27 日发布。<a href="https://www.nowcoder.com/discuss/702118563280080896" rel="noopener noreferrer">牛客原帖</a>。</p><a class="detail" href="#insta360-gstreamer-v4l2">查看题目与参考答案 →</a></li>
+<li><p><strong>CVTE 嵌入式软件开发实习（Linux 方向）：C++、FreeRTOS 与整数解析。</strong> 牛客 2025 年 5 月 24 日发布。覆盖 C++ 基础、数据结构、进程和线程、FreeRTOS、死锁及字符转整数。<a href="https://www.nowcoder.com/discuss/755715142603513856" rel="noopener noreferrer">牛客原帖</a>。</p><a class="detail" href="#cvte-linux-cpp-freertos">查看题目与参考答案 →</a></li>
 <!-- INTERNSHIP_SOURCES_END -->
 </ol><h3>校招、历史面经和邻近岗位</h3><ol class="sources">
 <!-- REFERENCE_SOURCES_START -->
@@ -755,6 +798,7 @@
 <p>2026-11-25：补入影石 BSP 日常实习一面，按原帖顺序拆出 27 道技术题，逐题整理 C、总线、设备树、中断和启动的参考答案。</p>
 <p>2026-11-26：补入 vivo 嵌入式暑期实习面经，按原帖顺序整理 18 道 Linux 技术题和逐题参考答案。</p>
 <p>2026-11-27：补入影石嵌入式暑期实习一面，整理进程间通信、GStreamer、V4L2 和采集显示的 5 道技术题，另列预览与录制的自练题。</p>
+<p>2026-11-28：新增 CVTE 嵌入式软件实习技术面，按原帖顺序整理 8 道题，附整数转换手写实现及边界说明。</p>
 <!-- UPDATE_LOG_END -->
 </section>
           <footer class="page-end"><a href="../">返回我的笔记</a><a href="#main">回到开头 ↑</a></footer>
@@ -787,6 +831,7 @@
 <a href="#insta360-bsp-i2c-spi-irq">影石 BSP 日常实习一面：I²C、SPI、设备树和中断</a>
 <a href="#vivo-linux-kernel-scheduling-driver">vivo 嵌入式暑期实习：Linux 调度、内存和驱动</a>
 <a href="#insta360-gstreamer-v4l2">影石嵌入式暑期实习一面：GStreamer 与 V4L2 采集显示</a>
+<a href="#cvte-linux-cpp-freertos">CVTE 嵌入式软件开发实习（Linux 方向）：C++、FreeRTOS 与整数解析</a>
 <!-- ENTRY_LINKS_END -->
 </nav>
         <nav class="section-links" aria-label="其他章节"><a href="#sources">原帖索引</a><a href="#practice">练习清单</a><a href="#updates">更新记录</a></nav>
