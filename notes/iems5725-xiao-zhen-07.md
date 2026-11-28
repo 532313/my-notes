@@ -1,0 +1,9 @@
+<!-- notebook: {"version":1,"title":"肖臻 07 挖矿难度调整","notebook":"5725","created":"2026-11-28T03:26:14.586Z","updated":"2026-11-28T03:26:14.586Z","favorite":false,"trashed":false,"source":null} -->
+
+# 肖臻 07 挖矿难度调整
+
+[前一篇](#note/notes%2Fiems5725-xiao-zhen-06.md) · [全部 31 篇](#note/notes%2Fiems5725-xiao-zhen-notes.md) · [后一篇](#note/notes%2Fiems5725-xiao-zhen-08.md)
+
+笔记作者 阿木mu · [作者的 PDF 目录](https://sinocifeng.github.io/downloadPage.html)
+
+[在新标签页打开原版 PDF](<https://sinocifeng.github.io/Resources/AboutBlockchain/%E5%8C%97%E4%BA%AC%E5%A4%A7%E5%AD%A6%E8%82%96%E8%87%BB%E8%80%81%E5%B8%88%E3%80%8A%E5%8C%BA%E5%9D%97%E9%93%BE%E6%8A%80%E6%9C%AF%E4%B8%8E%E5%BA%94%E7%94%A8%E3%80%8B%E5%85%AC%E5%BC%80%E8%AF%BE%E7%AC%94%E8%AE%B07%E2%80%94%E2%80%94BTC%E6%8C%96%E7%9F%BF%E9%9A%BE%E5%BA%A6%E8%B0%83%E6%95%B4%E7%AF%87.pdf>)
