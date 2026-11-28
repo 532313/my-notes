@@ -1,10 +1,10 @@
-<!-- notebook: {"version":1,"title":"14 肖臻《区块链技术与应用》公开课笔记索引","notebook":"5725","created":"2026-11-28T03:10:12.287Z","updated":"2026-11-28T03:26:14.586Z","favorite":false,"trashed":false,"source":null} -->
+<!-- notebook: {"version":1,"title":"14 肖臻《区块链技术与应用》公开课笔记索引","notebook":"5725","created":"2026-11-28T03:10:12.287Z","updated":"2026-11-28T03:51:22.829Z","favorite":false,"trashed":false,"source":null} -->
 
 # 14 肖臻《区块链技术与应用》公开课笔记索引
 
 讲课：北京大学肖臻。笔记作者：阿木mu。
 
-共 31 篇，按作者的编号排列。点开任意一篇，即可在笔记内阅读作者发布的原版 PDF。
+共 31 篇，按作者的编号排列。第 01–25 篇可以在笔记内阅读作者的图文网页，第 26–31 篇可查看作者发布的原版 PDF。
 
 [牛客原目录](https://blog.nowcoder.net/n/30cbdb37108b4d93b3a5a93b8226ae31) · [作者的完整 PDF 目录](https://sinocifeng.github.io/downloadPage.html) · [返回 5725 笔记本](#notebook/5725)
 
