@@ -69,7 +69,7 @@
     if(search)items=items.filter(d=>reader.fold([d.title,d.body||'',d.notebook].join('\n')).includes(reader.fold(search)));
     if(currentRoute==='recent')items.sort((a,b)=>recent.indexOf(a.id)-recent.indexOf(b.id));
     else if($('sortSelect').value==='title')items.sort((a,b)=>a.title.localeCompare(b.title,'zh-CN'));
-    else items.sort((a,b)=>(b.updated||'').localeCompare(a.updated||''));
+    else items.sort((a,b)=>(b.updated||'').localeCompare(a.updated||'')||a.title.localeCompare(b.title,'zh-CN'));
     if(search){const query=reader.fold(search);items.sort((first,second)=>Number(reader.fold(second.title||'').includes(query))-Number(reader.fold(first.title||'').includes(query)));}
     const resume=currentRoute==='home'&&!search&&recent.map(id=>items.find(doc=>doc.id===id&&doc.type==='note'&&!doc.localDraft&&disk.read('reading.'+id,null)?.section)).find(Boolean);
     $('continueNote').hidden=!resume;if(resume){$('continueNote').href=noteHash(resume.id);$('continueNote').textContent='继续阅读：'+resume.title;}
@@ -114,9 +114,30 @@
     try{await navigator.clipboard.writeText(text);success=true;}catch{const area=document.createElement('textarea');area.value=text;area.className='clipboard-fallback';document.body.append(area);area.focus();area.select();try{success=document.execCommand('copy');}catch{}area.remove();button.focus();}
     button.textContent=success?'已复制':'复制失败';setTimeout(()=>button.textContent='复制代码',1800);if(!success)notify('复制失败，请选中代码后复制。');
   }
+  function prepareCoursePdf(){
+    const chapter=current?.id.match(/^notes\/iems5725-xiao-zhen-(\d{2})\.md$/)?.[1];
+    if(!chapter||current.notebook!=='5725')return;
+    const pdfOrigin='https://sinocifeng.github.io';
+    const pathPrefix='/Resources/AboutBlockchain/北京大学肖臻老师《区块链技术与应用》公开课笔记'+Number(chapter)+'——';
+    const preview=$('notePreview');
+    for(const link of preview.querySelectorAll('a[href]')){
+      let url,path;
+      try{url=new URL(link.href);path=decodeURIComponent(url.pathname);}catch{continue;}
+      if(url.origin!==pdfOrigin||url.username||url.password||url.search||url.hash)continue;
+      if(!path.startsWith(pathPrefix)||!/^[^/\\]+\.pdf$/.test(path.slice(pathPrefix.length)))continue;
+      const frame=document.createElement('iframe');
+      frame.className='course-note-pdf';
+      frame.title=current.title+' 原版 PDF';
+      frame.loading='lazy';
+      frame.referrerPolicy='no-referrer';
+      frame.src=url.href;
+      preview.append(frame);
+      return;
+    }
+  }
   function renderPreview(){
     const html=marked.parse($('noteBody').value,{gfm:true,breaks:false});$('notePreview').innerHTML=DOMPurify.sanitize(html,{FORBID_TAGS:['iframe','form','style','script','object','embed'],FORBID_ATTR:['style']});
-    prepareNoteLinks();prepareCodeBlocks();
+    prepareNoteLinks();prepareCodeBlocks();prepareCoursePdf();
     window.NoteHeatmap?.mount($('notePreview'));
     if(current?.type==='note')reader.mount(current,allNotes());
     if(!$('noteBody').value.trim())$('notePreview').innerHTML='<p style="color:var(--subtle)">还没有正文，切换到编辑开始记录。</p>';
