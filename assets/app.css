@@ -1696,29 +1696,3 @@ dialog > a, dialog form > a { display: inline-block; font-size: 12px; margin-top
 @media (prefers-reduced-motion: reduce) {
   * { scroll-behavior: auto !important; transition: none !important; }
 }
-
-.course-note-pdf {
-  margin-top: 1rem;
-}
-.course-note-pdf > [role="status"] {
-  color: var(--muted);
-  font-size: 0.9rem;
-}
-.course-note-pdf-page {
-  display: block;
-  width: 100%;
-  height: auto;
-  margin: 0 auto 1.25rem;
-  border: 1px solid var(--line);
-  background: white;
-}
-
-.course-note-article {
-  display: block;
-  width: 100%;
-  height: 80vh;
-  min-height: 500px;
-  margin-top: 1rem;
-  border: 1px solid var(--line);
-  background: white;
-}
