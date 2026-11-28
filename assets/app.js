@@ -114,7 +114,7 @@
     try{await navigator.clipboard.writeText(text);success=true;}catch{const area=document.createElement('textarea');area.value=text;area.className='clipboard-fallback';document.body.append(area);area.focus();area.select();try{success=document.execCommand('copy');}catch{}area.remove();button.focus();}
     button.textContent=success?'已复制':'复制失败';setTimeout(()=>button.textContent='复制代码',1800);if(!success)notify('复制失败，请选中代码后复制。');
   }
-  function prepareCoursePdf(){
+  function prepareCourseSource(){
     const chapter=current?.id.match(/^notes\/iems5725-xiao-zhen-(\d{2})\.md$/)?.[1];
     if(!chapter||current.notebook!=='5725')return;
     const pdfOrigin='https://sinocifeng.github.io';
@@ -123,6 +123,20 @@
     for(const link of preview.querySelectorAll('a[href]')){
       let url,path;
       try{url=new URL(link.href);path=decodeURIComponent(url.pathname);}catch{continue;}
+      const number=Number(chapter);
+      const blogArticle=number<=24&&url.origin==='https://blog.nowcoder.net'&&/^\/n\/[0-9a-f]{32}$/.test(url.pathname);
+      const discussion=number===25&&url.origin==='https://www.nowcoder.com'&&url.pathname==='/discuss/353147757886119936';
+      if((blogArticle||discussion)&&!url.username&&!url.password&&!url.search&&!url.hash){
+        const frame=document.createElement('iframe');
+        frame.className='course-note-article';
+        frame.title=current.title+' 图文原文';
+        frame.loading='lazy';
+        frame.referrerPolicy='no-referrer';
+        frame.setAttribute('sandbox','allow-scripts allow-same-origin');
+        frame.src=url.href;
+        preview.append(frame);
+        return;
+      }
       if(url.origin!==pdfOrigin||url.username||url.password||url.search||url.hash)continue;
       if(!path.startsWith(pathPrefix)||!/^[^/\\]+\.pdf$/.test(path.slice(pathPrefix.length)))continue;
       window.CoursePdfReader.mount(preview,url.href,current.title);
@@ -132,7 +146,7 @@
   function renderPreview(){
     window.CoursePdfReader.clear();
     const html=marked.parse($('noteBody').value,{gfm:true,breaks:false});$('notePreview').innerHTML=DOMPurify.sanitize(html,{FORBID_TAGS:['iframe','form','style','script','object','embed'],FORBID_ATTR:['style']});
-    prepareNoteLinks();prepareCodeBlocks();prepareCoursePdf();
+    prepareNoteLinks();prepareCodeBlocks();prepareCourseSource();
     window.NoteHeatmap?.mount($('notePreview'));
     if(current?.type==='note')reader.mount(current,allNotes());
     if(!$('noteBody').value.trim())$('notePreview').innerHTML='<p style="color:var(--subtle)">还没有正文，切换到编辑开始记录。</p>';
@@ -249,6 +263,7 @@
     }finally{deleting=false;setDocumentBusy(false);updateSelection();}
   }
   async function route(){
+    document.querySelector('.course-note-article')?.remove();
     window.CoursePdfReader.clear();
     captureEditor();reader.leave();$('noteActions').open=false;const sequence=++routeSequence;
     const raw=location.hash.slice(1)||'home';const [path,query]=raw.split('?');const [kind,...rest]=path.split('/');let id;try{id=decodeURIComponent(rest.join('/'));}catch{location.hash='#home';return;}
