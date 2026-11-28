@@ -1,9 +1,7 @@
-<!-- notebook: {"version":1,"title":"肖臻 15 以太坊概述","notebook":"5725","created":"2026-11-28T03:26:14.586Z","updated":"2026-11-28T03:26:14.586Z","favorite":false,"trashed":false,"source":null} -->
-
-# 肖臻 15 以太坊概述
+<!-- notebook: {"version":1,"title":"肖臻 15 以太坊概述","notebook":"5725","created":"2026-11-28T03:26:14.586Z","updated":"2026-11-28T04:21:23.339Z","favorite":false,"trashed":false,"source":null} -->
 
 [前一篇](#note/notes%2Fiems5725-xiao-zhen-14.md) · [全部 31 篇](#note/notes%2Fiems5725-xiao-zhen-notes.md) · [后一篇](#note/notes%2Fiems5725-xiao-zhen-16.md)
 
-笔记作者 阿木mu · [作者的资料目录](https://sinocifeng.github.io/downloadPage.html)
+作者 阿木mu · [原文出处](https://blog.nowcoder.net/n/f6a89f59329542eb9216caa8ca2c843d)
 
-[在新标签页打开图文原文](https://blog.nowcoder.net/n/f6a89f59329542eb9216caa8ca2c843d)
+<div class="course-source-text"><h1>北京大学肖臻老师《区块链技术与应用》公开课笔记</h1> <blockquote> <p>以太坊概述篇，对应肖老师视频：<a href="https://www.bilibili.com/video/av37065233?p=14">https://www.bilibili.com/video/av37065233?p=14</a><br>全系列笔记请见：<a href="https://blog.nowcoder.net/n/30cbdb37108b4d93b3a5a93b8226ae31">https://blog.nowcoder.net/n/30cbdb37108b4d93b3a5a93b8226ae31</a></p> </blockquote> <p>BTC和ETH为最主要的两种加密货币，BTC称为区块链1.0，以太坊称为区块链2.0。之前文章中提出了比特币设计中存在某些不足，以太坊便对其进行了改进。例如：出块时间、共识协议、mining puzzle（对内存要求高，反ASIC芯片使用）<br>未来，以太坊还将会用权益证明(POS)替代工作量证明(POW)<br>此外，以太坊增加了对<strong>智能合约（smart contract）</strong>的支持。</p> <h2>为什么要弄“智能合约”</h2> <p>BTC本身是一个去中心化的货币，在比特币取得成功之后，很多人就开始思考：除了货币可以去中心化，还有什么可以去中心化？以太坊的一个特性就是增加了对去中心化的合约的支持。<br>如果说比特币系统本身是一个货币应用，以太坊则由于智能合约，升级成为了一个平台，用户可以依据该平台自行开发业务应用。</p> <h2>关于BTC和ETH</h2> <p>BTC的发明人为中本聪(疑似日本人)，ETH为Vitalik Buterin收到BTC启发发明出来的““下一代加密货币与去中心化应用平台””。BTC中货币最小单位为“聪”，最少的钱为一聪；ETH中货币最小单位为“Wei”，最少的钱为一Wei。</p> <h2>去中心化的合约</h2> <p>首先，讨论去中心化货币。货币本身由政府发行，政府公信力为其背书，BTC通过技术手段取代了政府的职能。<br>现实生活中，我们经常提到“契约”或“合约”。合约的有效性也是需要政府进行维护的，如果产生<strong><em>，</em></strong>需要针对合法性合同进行判决。ETH的设计目的就是，通过技术手段来实现取代政府对于合约的职能。<br>那么，去中心化的合约有什么好处？<br>若合同签署方并非一个国家，没有统一的司法部门（如：众筹）。如果可以编写无法修改的合约，所有人只能按照相关参与方执行，无法违约。</p> <h2>后续内容</h2> <p>后续内容会涉及到以太坊的数据结构、共识机制、挖矿算法(POW和POS)、智能合约。<br>具体内容，请关注后续文章。</p> </div>
