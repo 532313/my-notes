@@ -125,17 +125,12 @@
       try{url=new URL(link.href);path=decodeURIComponent(url.pathname);}catch{continue;}
       if(url.origin!==pdfOrigin||url.username||url.password||url.search||url.hash)continue;
       if(!path.startsWith(pathPrefix)||!/^[^/\\]+\.pdf$/.test(path.slice(pathPrefix.length)))continue;
-      const frame=document.createElement('iframe');
-      frame.className='course-note-pdf';
-      frame.title=current.title+' 原版 PDF';
-      frame.loading='lazy';
-      frame.referrerPolicy='no-referrer';
-      frame.src=url.href;
-      preview.append(frame);
+      window.CoursePdfReader.mount(preview,url.href,current.title);
       return;
     }
   }
   function renderPreview(){
+    window.CoursePdfReader.clear();
     const html=marked.parse($('noteBody').value,{gfm:true,breaks:false});$('notePreview').innerHTML=DOMPurify.sanitize(html,{FORBID_TAGS:['iframe','form','style','script','object','embed'],FORBID_ATTR:['style']});
     prepareNoteLinks();prepareCodeBlocks();prepareCoursePdf();
     window.NoteHeatmap?.mount($('notePreview'));
@@ -254,6 +249,7 @@
     }finally{deleting=false;setDocumentBusy(false);updateSelection();}
   }
   async function route(){
+    window.CoursePdfReader.clear();
     captureEditor();reader.leave();$('noteActions').open=false;const sequence=++routeSequence;
     const raw=location.hash.slice(1)||'home';const [path,query]=raw.split('?');const [kind,...rest]=path.split('/');let id;try{id=decodeURIComponent(rest.join('/'));}catch{location.hash='#home';return;}
     const documentRoute=['note','pdf','guide'].includes(kind),fromLibrary=!$('libraryView').hidden&&routeSequence>1;
